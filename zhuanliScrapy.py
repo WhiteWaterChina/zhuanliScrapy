@@ -36,8 +36,9 @@ def getdatafromweb():
     browser.find_element_by_id("EmailPassword").send_keys(password)
     browser.find_element_by_css_selector("button.new-login").click()
     time.sleep(3)
-    ActionChains(browser).move_to_element(browser.find_element_by_css_selector("li.fl.audit")).perform()
-    WebDriverWait(browser, 100).until(ec.element_to_be_clickable((By.XPATH, "//a[@title='我已审核的']".decode('gbk'))))
+    browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")
+    ActionChains(browser).move_to_element(browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")).perform()
+    time.sleep(1)
     browser.find_element_by_xpath("//a[@title='我已审核的']".decode('gbk')).click()
     time.sleep(3)
     except_list = ['驳回'.decode('gbk'), '退回发起人'.decode('gbk')]
@@ -55,7 +56,7 @@ def getdatafromweb():
                 data_created_by = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_by" % line_number).text.strip()
                 data_created_at_temp = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                 data_created_at = data_created_at_temp
-                data_status_list.append(data_status)
+#                data_status_list.append(data_status)
                 data_sn_list.append(data_sn)
                 data_filename_list.append(data_filaname)
                 data_current_nodename_list.append(data_current_nodename)
@@ -71,8 +72,10 @@ def getdatafromweb():
                 except selenium.common.exceptions.NoSuchElementException:
                     departmane_name = 'None'
                 type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
+                data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
                 department_name_list.append(departmane_name)
                 type_invention_list.append(type_invention)
+                data_status_list.append(data_status_display)
                 browser.close()
                 browser.switch_to.window(handles[0])
         try:
