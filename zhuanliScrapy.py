@@ -38,8 +38,10 @@ def getdatafromweb():
     time.sleep(3)
     browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")
     ActionChains(browser).move_to_element(browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")).perform()
-    time.sleep(1)
-    browser.find_element_by_xpath("//a[@title='我已审核的']".decode('gbk')).click()
+#    time.sleep(1)
+    browser.find_element_by_css_selector("#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
+    # header > ul > li.fl.audit.active > div > div > ul > li:nth-child(2) > a
+#    browser.find_element_by_xpath("//a[@href='/audit/bpm/complete']".decode('gbk')).click()
     time.sleep(3)
     except_list = ['驳回'.decode('gbk'), '退回发起人'.decode('gbk')]
     while True:
