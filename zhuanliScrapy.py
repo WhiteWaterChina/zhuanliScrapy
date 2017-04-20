@@ -35,10 +35,9 @@ def getdatafromweb():
     browser.find_element_by_id("UserEmail").send_keys(username)
     browser.find_element_by_id("EmailPassword").send_keys(password)
     browser.find_element_by_css_selector("button.new-login").click()
-    time.sleep(3)
+    time.sleep(5)
     browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")
     ActionChains(browser).move_to_element(browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")).perform()
-#    time.sleep(1)
     browser.find_element_by_css_selector("#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
     # header > ul > li.fl.audit.active > div > div > ul > li:nth-child(2) > a
 #    browser.find_element_by_xpath("//a[@href='/audit/bpm/complete']".decode('gbk')).click()
@@ -81,7 +80,8 @@ def getdatafromweb():
                 browser.close()
                 browser.switch_to.window(handles[0])
         try:
-            next_page = browser.find_element_by_css_selector("#table_page > div > a:nth-child(3)")
+            total_bottom_div = len(browser.find_elements_by_css_selector("#table_page > div > a"))
+            next_page = browser.find_element_by_css_selector("#table_page > div > a:nth-child(%d)" % total_bottom_div)
             if next_page.text != "обр╩рЁ".decode('gbk'):
                 browser.quit()
                 break
