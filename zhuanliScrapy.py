@@ -42,16 +42,16 @@ def getdatafromweb():
     # header > ul > li.fl.audit.active > div > div > ul > li:nth-child(2) > a
 #    browser.find_element_by_xpath("//a[@href='/audit/bpm/complete']".decode('gbk')).click()
     time.sleep(3)
-    except_list = ['驳回'.decode('gbk'), '退回发起人'.decode('gbk')]
+    except_list = ['驳回'.decode('gbk'), '退回发起人'.decode('gbk'), '撤销'.decode('gbk')]
     while True:
         current_table_line = browser.find_elements_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
         length_table = len(current_table_line) + 1
         for line_number in range(1, length_table):
             data_status = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text
-            if data_status not in except_list:
-                data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
-                data_sn_filename = data_sn_filename_link.text
-                data_sn = data_sn_filename.split('/')[0].strip()
+            data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
+            data_sn_filename = data_sn_filename_link.text
+            data_sn = data_sn_filename.split('/')[0].strip()
+            if data_status not in except_list and data_sn not in data_sn_list:
                 data_filaname = data_sn_filename.split('/')[1].strip()
                 data_current_nodename = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
                 data_created_by = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_by" % line_number).text.strip()
