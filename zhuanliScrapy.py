@@ -28,8 +28,8 @@ def getdatafromweb():
     type_invention_list = []
     username = 'yanshuo@inspur.com'
     password = 'patsnapinspur'
-    chromedriverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
-    browser = webdriver.Chrome(chromedriverpath)
+    driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
+    browser = webdriver.PhantomJS(driverpath)
     url = "http://10.110.6.34/users/login"
     browser.get(url)
     browser.find_element_by_id("UserEmail").send_keys(username)
@@ -79,6 +79,8 @@ def getdatafromweb():
                 data_status_list.append(data_status_display)
                 browser.close()
                 browser.switch_to.window(handles[0])
+        current_page_number = browser.find_element_by_css_selector("#table_page > div > span").text.strip()
+        print "处理完成第%s页".decode('gbk') %current_page_number
         try:
             total_bottom_div = len(browser.find_elements_by_css_selector("#table_page > div > a"))
             next_page = browser.find_element_by_css_selector("#table_page > div > a:nth-child(%d)" % total_bottom_div)
