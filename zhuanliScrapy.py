@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:cp936 -*-
+#author:yanshuo@inspur.com
 import time
 import os
 import sys
