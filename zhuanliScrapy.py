@@ -53,12 +53,12 @@ def getdatafromweb():
             data_sn = data_sn_filename.split('/')[0].strip()
             if data_status not in except_list and data_sn not in data_sn_list:
                 data_current_nodename = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
-                data_created_by = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_by" % line_number).text.strip()
+#                data_created_by = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_by" % line_number).text.strip()
                 data_created_at_temp = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                 data_created_at = data_created_at_temp
                 data_sn_list.append(data_sn)
                 data_current_nodename_list.append(data_current_nodename)
-                data_creator_list.append(data_created_by)
+#                data_creator_list.append(data_created_by)
                 data_created_date_list.append(data_created_at)
                 data_sn_filename_link.click()
                 time.sleep(3)
@@ -72,6 +72,8 @@ def getdatafromweb():
 
                 type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
                 data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
+                data_created_by = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(" ")[0].strip()
+                data_creator_list.append(data_created_by)
                 if data_status_display == 'ÉêÇë×¨Àû'.decode('gbk'):
                     shouli_sn = browser.find_element_by_css_selector("#patents-related > div > span.table-content > table > tbody > tr > td:nth-child(3)").text.strip()
                     shouli_sn_list.append(shouli_sn)
