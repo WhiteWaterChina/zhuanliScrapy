@@ -1,27 +1,25 @@
 #!/usr/bin/env python
 # -*- coding:cp936 -*-
-# author:yanshuo@inspur.com
+# Author:yanshuo@inspur.com
 
 import wx
 import wx.xrc
 import time
 import os
-import sys
-
+from threading import Thread
 import selenium.common.exceptions
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
 import xlsxwriter
 import datetime
 
 
 class FrameZhuanli(wx.Frame):
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(418, 220),
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(418, 297),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetSizeHintsSz(wx.DefaultSize, wx.DefaultSize)
@@ -117,7 +115,7 @@ class FrameZhuanli(wx.Frame):
 
         bSizer5 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.button_go = wx.Button(self, wx.ID_ANY, u"GO", wx.DefaultPosition, wx.Size(-1, 35), 0)
+        self.button_go = btn = wx.Button(self, wx.ID_ANY, u"GO", wx.DefaultPosition, wx.Size(-1, 35), 0)
         bSizer5.Add(self.button_go, 0, wx.ALL, 5)
 
         self.button_exit = wx.Button(self, wx.ID_ANY, u"退出", wx.DefaultPosition, wx.Size(-1, 35), 0)
@@ -125,9 +123,12 @@ class FrameZhuanli(wx.Frame):
 
         bSizer1.Add(bSizer5, 0, wx.ALIGN_CENTER | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        bSizer11 = wx.BoxSizer(wx.VERTICAL)
+        bSizer91 = wx.BoxSizer(wx.VERTICAL)
 
-        bSizer1.Add(bSizer11, 1, wx.EXPAND, 5)
+        self.output_info = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE)
+        bSizer91.Add(self.output_info, 1, wx.ALL | wx.EXPAND, 5)
+
+        bSizer1.Add(bSizer91, 1, wx.EXPAND, 5)
 
         self.SetSizer(bSizer1)
         self.Layout()
@@ -135,14 +136,18 @@ class FrameZhuanli(wx.Frame):
         self.Centre(wx.BOTH)
 
         # Connect Events
-        self.button_go.Bind(wx.EVT_BUTTON, self.get_data)
+        self.button_go.Bind(wx.EVT_BUTTON, self.onbutton)
         self.button_exit.Bind(wx.EVT_BUTTON, self.close)
+
+        self._thread = Thread(target=self.run, args=())
+        self._thread.daemon = True
 
     def close(self, event):
         self.Close()
 
-    def get_data(self, event):
-        print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+    def run(self):
+        self.updatedisplay("开始抓取".decode('gbk'))
+        self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         department_write = self.input_department.GetValue()
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
@@ -164,8 +169,10 @@ class FrameZhuanli(wx.Frame):
         browser.find_element_by_css_selector("button.new-login").click()
         time.sleep(5)
         browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")
-        ActionChains(browser).move_to_element(browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")).perform()
-        browser.find_element_by_css_selector("#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
+        ActionChains(browser).move_to_element(
+            browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")).perform()
+        browser.find_element_by_css_selector(
+            "#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
         time.sleep(3)
         except_list = []
         if self.checkbox_1.GetValue():
@@ -175,16 +182,21 @@ class FrameZhuanli(wx.Frame):
         if self.checkbox_3.GetValue():
             except_list.append('撤销'.decode('gbk'))
         while True:
-            current_table_line = browser.find_elements_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
+            current_table_line = browser.find_elements_by_css_selector(
+                "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
             length_table = len(current_table_line) + 1
             for line_number in range(1, length_table):
-                data_status = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text
-                data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
+                data_status = browser.find_element_by_css_selector(
+                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text
+                data_sn_filename_link = browser.find_element_by_css_selector(
+                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
                 data_sn_filename = data_sn_filename_link.text
                 data_sn = data_sn_filename.split('/')[0].strip()
                 if data_status not in except_list and data_sn not in data_sn_list:
-                    data_current_nodename = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
-                    data_created_at_temp = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
+                    data_current_nodename = browser.find_element_by_css_selector(
+                        "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
+                    data_created_at_temp = browser.find_element_by_css_selector(
+                        "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                     data_created_at = data_created_at_temp
                     data_sn_list.append(data_sn)
                     data_current_nodename_list.append(data_current_nodename)
@@ -193,31 +205,41 @@ class FrameZhuanli(wx.Frame):
                     time.sleep(3)
                     handles = browser.window_handles
                     browser.switch_to.window(handles[1])
-                    WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > th')))
-                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
+                    WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR,
+                                                                                      '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > th')))
+                    department_temp = browser.find_elements_by_css_selector(
+                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
                     length_department = len(department_temp)
-                    departmane_name = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a:nth-child(%d)" %length_department).text.strip()
-                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
-                    data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
-                    data_created_by = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(" ")[0].strip()
+                    departmane_name = browser.find_element_by_css_selector(
+                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a:nth-child(%d)" % length_department).text.strip()
+                    type_invention = browser.find_element_by_css_selector(
+                        '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
+                    data_status_display = browser.find_element_by_css_selector(
+                        "#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
+                    data_created_by = browser.find_element_by_css_selector(
+                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(
+                        " ")[0].strip()
                     data_creator_list.append(data_created_by)
                     if data_status_display == '申请专利'.decode('gbk'):
-                        shouli_sn = browser.find_element_by_css_selector("#patents-related > div > span.table-content > table > tbody > tr > td:nth-child(3)").text.strip()
+                        shouli_sn = browser.find_element_by_css_selector(
+                            "#patents-related > div > span.table-content > table > tbody > tr > td:nth-child(3)").text.strip()
                         shouli_sn_list.append(shouli_sn)
                     else:
                         shouli_sn_list.append('None')
-                    data_filaname = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
+                    data_filaname = browser.find_element_by_css_selector(
+                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
                     data_filename_list.append(data_filaname)
                     department_name_list.append(departmane_name)
                     type_invention_list.append(type_invention)
                     data_status_list.append(data_status_display)
                     browser.close()
                     browser.switch_to.window(handles[0])
-            current_page_number = browser.find_element_by_css_selector("#table_page > div > span").text.strip()
-            print "处理完成第%s页".decode('gbk') %current_page_number
+            current_page_number = int(browser.find_element_by_css_selector("#table_page > div > span").text.strip())
+            self.updatedisplay(current_page_number)
             try:
                 total_bottom_div = len(browser.find_elements_by_css_selector("#table_page > div > a"))
-                next_page = browser.find_element_by_css_selector("#table_page > div > a:nth-child(%d)" % total_bottom_div)
+                next_page = browser.find_element_by_css_selector(
+                    "#table_page > div > a:nth-child(%d)" % total_bottom_div)
                 if next_page.text != "下一页".decode('gbk'):
                     browser.quit()
                     break
@@ -262,7 +284,33 @@ class FrameZhuanli(wx.Frame):
                                      workbook_display.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss', 'border': 1}))
                 sheet.write(2 + index_data, 8, shouli_sn_list[index_data], formatOne)
         workbook_display.close()
-        print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
+        time.sleep(1)
+        self.updatedisplay("Finished")
+
+    def onbutton(self, event):
+        """
+        Runs the thread
+        """
+        self._thread.start()
+        self.started = True
+        self.button_go = event.GetEventObject()
+        self.button_go.Disable()
+
+    def updatedisplay(self, msg):
+        """
+        Receives data from thread and updates the display
+        """
+        t = msg
+        if isinstance(t, int):
+            self.output_info.AppendText("完成第%s页" % t)
+        elif t == "Finished":
+            self.button_go.Enable()
+        else:
+            self.output_info.AppendText("%s" % t)
+        self.output_info.AppendText(os.linesep)
+
 
 
 if __name__ == '__main__':
