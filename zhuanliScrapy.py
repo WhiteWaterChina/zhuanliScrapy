@@ -209,9 +209,13 @@ class FrameZhuanli(wx.Frame):
                                                                                       '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > th')))
                     department_temp = browser.find_elements_by_css_selector(
                         "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
-                    length_department = len(department_temp)
-                    departmane_name = browser.find_element_by_css_selector(
-                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a:nth-child(%d)" % length_department).text.strip()
+                    #length_department = len(department_temp)
+                    #department_name = browser.find_element_by_css_selector(
+                        #"#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a:nth-child(%d)" % length_department).text.strip()
+                    department_name_temp_list = []
+                    for item_department in department_temp:
+                        department_name_temp_list.append(item_department.text.strip())
+                    department_name = "".join(department_name_temp_list)
                     type_invention = browser.find_element_by_css_selector(
                         '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
                     data_status_display = browser.find_element_by_css_selector(
@@ -229,7 +233,7 @@ class FrameZhuanli(wx.Frame):
                     data_filaname = browser.find_element_by_css_selector(
                         "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
                     data_filename_list.append(data_filaname)
-                    department_name_list.append(departmane_name)
+                    department_name_list.append(department_name)
                     type_invention_list.append(type_invention)
                     data_status_list.append(data_status_display)
                     browser.close()
@@ -256,10 +260,10 @@ class FrameZhuanli(wx.Frame):
         timestamp = time.strftime('%Y%m%d', time.localtime())
         workbook_display = xlsxwriter.Workbook('%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
         sheet = workbook_display.add_worksheet('2017财年%s专利统计'.decode('gbk') % department_write)
-        formatOne = workbook_display.add_format()
-        formatOne.set_border(1)
-        formatTwo = workbook_display.add_format()
-        formatTwo.set_border(1)
+        formatone = workbook_display.add_format()
+        formatone.set_border(1)
+        formattwo = workbook_display.add_format()
+        formattwo.set_border(1)
         formattitle = workbook_display.add_format()
         formattitle.set_border(1)
         formattitle.set_align('center')
@@ -267,22 +271,23 @@ class FrameZhuanli(wx.Frame):
         formattitle.set_bold(True)
         sheet.set_column('H:I', 22)
         sheet.set_column('B:B', 14)
-        sheet.set_column('C:C', 58)
+        sheet.set_column('C:C', 42)
+        sheet.set_column('D:D', 34)
         sheet.merge_range(0, 0, 0, 8, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
-            sheet.write(1, index_title, item_title, formatOne)
+            sheet.write(1, index_title, item_title, formatone)
             for index_data, item_data in enumerate(data_sn_list):
-                sheet.write(2 + index_data, 0, data_status_list[index_data], formatOne)
-                sheet.write(2 + index_data, 1, data_sn_list[index_data], formatOne)
-                sheet.write(2 + index_data, 2, data_filename_list[index_data], formatOne)
-                sheet.write(2 + index_data, 3, department_name_list[index_data], formatOne)
-                sheet.write(2 + index_data, 4, type_invention_list[index_data], formatOne)
-                sheet.write(2 + index_data, 5, data_current_nodename_list[index_data], formatOne)
-                sheet.write(2 + index_data, 6, data_creator_list[index_data], formatOne)
+                sheet.write(2 + index_data, 0, data_status_list[index_data], formatone)
+                sheet.write(2 + index_data, 1, data_sn_list[index_data], formatone)
+                sheet.write(2 + index_data, 2, data_filename_list[index_data], formatone)
+                sheet.write(2 + index_data, 3, department_name_list[index_data], formatone)
+                sheet.write(2 + index_data, 4, type_invention_list[index_data], formatone)
+                sheet.write(2 + index_data, 5, data_current_nodename_list[index_data], formatone)
+                sheet.write(2 + index_data, 6, data_creator_list[index_data], formatone)
                 sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_created_date_list[index_data],
                                                                                    '%Y/%m/%d %H:%M:%S'),
                                      workbook_display.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss', 'border': 1}))
-                sheet.write(2 + index_data, 8, shouli_sn_list[index_data], formatOne)
+                sheet.write(2 + index_data, 8, shouli_sn_list[index_data], formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
@@ -290,18 +295,12 @@ class FrameZhuanli(wx.Frame):
         self.updatedisplay("Finished")
 
     def onbutton(self, event):
-        """
-        Runs the thread
-        """
         self._thread.start()
         self.started = True
         self.button_go = event.GetEventObject()
         self.button_go.Disable()
 
     def updatedisplay(self, msg):
-        """
-        Receives data from thread and updates the display
-        """
         t = msg
         if isinstance(t, int):
             self.output_info.AppendText("完成第%s页" % t)
@@ -310,7 +309,6 @@ class FrameZhuanli(wx.Frame):
         else:
             self.output_info.AppendText("%s" % t)
         self.output_info.AppendText(os.linesep)
-
 
 
 if __name__ == '__main__':
