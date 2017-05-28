@@ -277,7 +277,6 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('B:B', 14)
         sheet.set_column('C:C', 42)
         sheet.set_column('D:D', 33)
-        sheet.set_column('H:H', 20)
         sheet.merge_range(0, 0, 0, 8, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
