@@ -19,7 +19,7 @@ import datetime
 
 class FrameZhuanli(wx.Frame):
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(418, 297),
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 297),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetSizeHintsSz(wx.DefaultSize, wx.DefaultSize)
@@ -90,32 +90,32 @@ class FrameZhuanli(wx.Frame):
 
         bSizer10 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, u"撤销", wx.DefaultPosition, wx.Size(60, -1), 0)
+        self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, u"撤销", wx.DefaultPosition, wx.Size(-1, -1), 0)
         self.checkbox_1.SetValue(True)
         self.checkbox_1.SetFont(wx.Font(9, 70, 90, 90, False, "宋体"))
         self.checkbox_1.SetForegroundColour(wx.Colour(0, 255, 64))
 
         bSizer10.Add(self.checkbox_1, 0, wx.ALL, 5)
 
-        self.checkbox_2 = wx.CheckBox(self, wx.ID_ANY, u"退回发起人", wx.DefaultPosition, wx.Size(80, -1), 0)
+        self.checkbox_2 = wx.CheckBox(self, wx.ID_ANY, u"退回发起人", wx.DefaultPosition, wx.Size(-1, -1), 0)
         self.checkbox_2.SetValue(True)
         self.checkbox_2.SetForegroundColour(wx.Colour(0, 255, 64))
 
         bSizer10.Add(self.checkbox_2, 0, wx.ALL, 5)
 
-        self.checkbox_3 = wx.CheckBox(self, wx.ID_ANY, u"驳回", wx.DefaultPosition, wx.Size(80, -1), 0)
+        self.checkbox_3 = wx.CheckBox(self, wx.ID_ANY, u"驳回", wx.DefaultPosition, wx.Size(-1, -1), 0)
         self.checkbox_3.SetValue(True)
         self.checkbox_3.SetForegroundColour(wx.Colour(0, 255, 64))
 
         bSizer10.Add(self.checkbox_3, 0, wx.ALL, 5)
 
-        bSizer8.Add(bSizer10, 1, wx.EXPAND, 5)
+        bSizer8.Add(bSizer10, 0, wx.EXPAND, 5)
 
         bSizer1.Add(bSizer8, 0, wx.EXPAND, 5)
 
         bSizer5 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.button_go = btn = wx.Button(self, wx.ID_ANY, u"GO", wx.DefaultPosition, wx.Size(-1, 35), 0)
+        self.button_go = wx.Button(self, wx.ID_ANY, u"GO", wx.DefaultPosition, wx.Size(-1, 35), 0)
         bSizer5.Add(self.button_go, 0, wx.ALL, 5)
 
         self.button_exit = wx.Button(self, wx.ID_ANY, u"退出", wx.DefaultPosition, wx.Size(-1, 35), 0)
@@ -125,7 +125,8 @@ class FrameZhuanli(wx.Frame):
 
         bSizer91 = wx.BoxSizer(wx.VERTICAL)
 
-        self.output_info = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE)
+        self.output_info = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                       wx.TE_MULTILINE)
         bSizer91.Add(self.output_info, 1, wx.ALL | wx.EXPAND, 5)
 
         bSizer1.Add(bSizer91, 1, wx.EXPAND, 5)
@@ -175,6 +176,7 @@ class FrameZhuanli(wx.Frame):
             "#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
         time.sleep(3)
         except_list = []
+        status_except_sub = ["撰写驳回".decode('gbk')]
         if self.checkbox_1.GetValue():
             except_list.append('驳回'.decode('gbk'))
         if self.checkbox_2.GetValue():
@@ -187,10 +189,10 @@ class FrameZhuanli(wx.Frame):
             length_table = len(current_table_line) + 1
             for line_number in range(1, length_table):
                 data_status = browser.find_element_by_css_selector(
-                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text
+                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
                 data_sn_filename_link = browser.find_element_by_css_selector(
                     "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
-                data_sn_filename = data_sn_filename_link.text
+                data_sn_filename = data_sn_filename_link.text.strip()
                 data_sn = data_sn_filename.split('/')[0].strip()
                 if data_status not in except_list and data_sn not in data_sn_list:
                     data_current_nodename = browser.find_element_by_css_selector(
@@ -198,9 +200,7 @@ class FrameZhuanli(wx.Frame):
                     data_created_at_temp = browser.find_element_by_css_selector(
                         "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                     data_created_at = data_created_at_temp
-                    data_sn_list.append(data_sn)
-                    data_current_nodename_list.append(data_current_nodename)
-                    data_created_date_list.append(data_created_at)
+
                     data_sn_filename_link.click()
                     time.sleep(3)
                     handles = browser.window_handles
@@ -223,19 +223,23 @@ class FrameZhuanli(wx.Frame):
                     data_created_by = browser.find_element_by_css_selector(
                         "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(
                         " ")[0].strip()
-                    data_creator_list.append(data_created_by)
-                    if data_status_display == '申请专利'.decode('gbk'):
-                        shouli_sn = browser.find_element_by_css_selector(
-                            "#patents-related > div > span.table-content > table > tbody > tr > td:nth-child(3)").text.strip()
-                        shouli_sn_list.append(shouli_sn)
-                    else:
-                        shouli_sn_list.append('None')
-                    data_filaname = browser.find_element_by_css_selector(
-                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
-                    data_filename_list.append(data_filaname)
-                    department_name_list.append(department_name)
-                    type_invention_list.append(type_invention)
-                    data_status_list.append(data_status_display)
+                    if data_status_display not in status_except_sub:
+                        if data_status_display == '申请专利'.decode('gbk'):
+                            shouli_sn = browser.find_element_by_css_selector(
+                                "#patents-related > div > span.table-content > table > tbody > tr > td:nth-child(3)").text.strip()
+                            shouli_sn_list.append(shouli_sn)
+                        else:
+                            shouli_sn_list.append('None')
+                        data_filaname = browser.find_element_by_css_selector(
+                            "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
+                        data_status_list.append(data_status_display)
+                        data_sn_list.append(data_sn)
+                        data_filename_list.append(data_filaname)
+                        department_name_list.append(department_name)
+                        type_invention_list.append(type_invention)
+                        data_current_nodename_list.append(data_current_nodename)
+                        data_creator_list.append(data_created_by)
+                        data_created_date_list.append(data_created_at)
                     browser.close()
                     browser.switch_to.window(handles[0])
             current_page_number = int(browser.find_element_by_css_selector("#table_page > div > span").text.strip())
@@ -272,7 +276,8 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('H:I', 22)
         sheet.set_column('B:B', 14)
         sheet.set_column('C:C', 42)
-        sheet.set_column('D:D', 34)
+        sheet.set_column('D:D', 33)
+        sheet.set_column('H:H', 20)
         sheet.merge_range(0, 0, 0, 8, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
