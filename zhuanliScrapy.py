@@ -15,6 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 import xlsxwriter
 import datetime
+import re
 
 
 class FrameZhuanli(wx.Frame):
@@ -200,7 +201,6 @@ class FrameZhuanli(wx.Frame):
                     data_created_at_temp = browser.find_element_by_css_selector(
                         "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                     data_created_at = data_created_at_temp
-
                     data_sn_filename_link.click()
                     time.sleep(3)
                     handles = browser.window_handles
@@ -220,9 +220,11 @@ class FrameZhuanli(wx.Frame):
                         '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
                     data_status_display = browser.find_element_by_css_selector(
                         "#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
-                    data_created_by = browser.find_element_by_css_selector(
+                    data_created_by_temp = browser.find_element_by_css_selector(
                         "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(
                         " ")[0].strip()
+                    data_created_by = re.search(r"\D*", data_created_by_temp).group()
+                    print data_created_by
                     if data_status_display not in status_except_sub:
                         if data_status_display == 'ÉêÇë×¨Àû'.decode('gbk'):
                             shouli_sn = browser.find_element_by_css_selector(
