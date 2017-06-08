@@ -162,8 +162,8 @@ class FrameZhuanli(wx.Frame):
         department_name_list = []
         type_invention_list = []
         shouli_sn_list = []
-        driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
-        browser = webdriver.PhantomJS(driverpath)
+        driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
+        browser = webdriver.Chrome(driverpath)
         url = "http://10.110.6.34/users/login"
         browser.get(url)
         browser.find_element_by_id("UserEmail").send_keys(username)
@@ -185,30 +185,28 @@ class FrameZhuanli(wx.Frame):
         if self.checkbox_3.GetValue():
             except_list.append('³·Ïú'.decode('gbk'))
         while True:
-            current_table_line = browser.find_elements_by_css_selector(
-                "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
+            current_table_line = browser.find_elements_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
             length_table = len(current_table_line) + 1
             for line_number in range(1, length_table):
-                data_status = browser.find_element_by_css_selector(
-                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
-                data_sn_filename_link = browser.find_element_by_css_selector(
-                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
+                data_status = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
+                data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
                 data_sn_filename = data_sn_filename_link.text.strip()
                 data_sn = data_sn_filename.split('/')[0].strip()
                 if data_status not in except_list and data_sn not in data_sn_list:
-                    data_current_nodename = browser.find_element_by_css_selector(
-                        "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
-                    data_created_at_temp = browser.find_element_by_css_selector(
-                        "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
+                    data_current_nodename = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
+                    data_created_at_temp = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                     data_created_at = data_created_at_temp
                     data_sn_filename_link.click()
                     time.sleep(3)
                     handles = browser.window_handles
                     browser.switch_to.window(handles[1])
-                    WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR,
-                                                                                      '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > th')))
-                    department_temp = browser.find_elements_by_css_selector(
-                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
+                    try:
+                        WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > th')))
+                    except selenium.common.exceptions.TimeoutException:
+                        browser.close()
+                        browser.switch_to.window(handles[0])
+                        continue
+                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
                     #length_department = len(department_temp)
                     #department_name = browser.find_element_by_css_selector(
                         #"#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a:nth-child(%d)" % length_department).text.strip()
@@ -216,24 +214,18 @@ class FrameZhuanli(wx.Frame):
                     for item_department in department_temp:
                         department_name_temp_list.append(item_department.text.strip())
                     department_name = "".join(department_name_temp_list)
-                    type_invention = browser.find_element_by_css_selector(
-                        '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
-                    data_status_display = browser.find_element_by_css_selector(
-                        "#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
-                    data_created_by_temp = browser.find_element_by_css_selector(
-                        "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(
-                        " ")[0].strip()
+                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
+                    data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
+                    data_created_by_temp = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(" ")[0].strip()
                     data_created_by = re.search(r"\D*", data_created_by_temp).group()
-                    print data_created_by
                     if data_status_display not in status_except_sub:
                         if data_status_display == 'ÉêÇë×¨Àû'.decode('gbk'):
-                            shouli_sn = browser.find_element_by_css_selector(
-                                "#patents-related > div > span.table-content > table > tbody > tr > td:nth-child(3)").text.strip()
+                            WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, "#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)")))
+                            shouli_sn = browser.find_element_by_css_selector("#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)").text.strip()
                             shouli_sn_list.append(shouli_sn)
                         else:
                             shouli_sn_list.append('None')
-                        data_filaname = browser.find_element_by_css_selector(
-                            "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
+                        data_filaname = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
                         data_status_list.append(data_status_display)
                         data_sn_list.append(data_sn)
                         data_filename_list.append(data_filaname)
@@ -256,6 +248,7 @@ class FrameZhuanli(wx.Frame):
                 else:
                     next_page.click()
                     time.sleep(3)
+                    WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
             except selenium.common.exceptions.NoSuchElementException:
                 browser.quit()
                 break
