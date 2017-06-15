@@ -23,8 +23,8 @@ class FrameZhuanli(wx.Frame):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 297),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
-        self.SetSizeHintsSz(wx.DefaultSize, wx.DefaultSize)
-        self.SetFont(wx.Font(9, 70, 90, 90, False, "宋体"))
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+#        self.SetFont(wx.Font(9, 70, 90, 90, False, "宋体"))
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
         self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWFRAME))
 
@@ -93,7 +93,7 @@ class FrameZhuanli(wx.Frame):
 
         self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, u"撤销", wx.DefaultPosition, wx.Size(-1, -1), 0)
         self.checkbox_1.SetValue(True)
-        self.checkbox_1.SetFont(wx.Font(9, 70, 90, 90, False, "宋体"))
+#        self.checkbox_1.SetFont(wx.Font(9, 70, 90, 90, False, "宋体"))
         self.checkbox_1.SetForegroundColour(wx.Colour(0, 255, 64))
 
         bSizer10.Add(self.checkbox_1, 0, wx.ALL, 5)
@@ -164,6 +164,8 @@ class FrameZhuanli(wx.Frame):
         shouli_sn_list = []
         driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
         browser = webdriver.Chrome(driverpath)
+#        driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
+#        browser = webdriver.PhantomJS(driverpath)
         url = "http://10.110.6.34/users/login"
         browser.get(url)
         browser.find_element_by_id("UserEmail").send_keys(username)
@@ -206,26 +208,23 @@ class FrameZhuanli(wx.Frame):
                         browser.close()
                         browser.switch_to.window(handles[0])
                         continue
-                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
-                    #length_department = len(department_temp)
-                    #department_name = browser.find_element_by_css_selector(
-                        #"#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a:nth-child(%d)" % length_department).text.strip()
+                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(11) > td > a")
                     department_name_temp_list = []
                     for item_department in department_temp:
                         department_name_temp_list.append(item_department.text.strip())
                     department_name = "".join(department_name_temp_list)
-                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
+                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(7) > td').text.strip()
                     data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
-                    data_created_by_temp = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(" ")[0].strip()
+                    data_created_by_temp = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(21) > td").text.split(" ")[0].strip()
                     data_created_by = re.search(r"\D*", data_created_by_temp).group()
                     if data_status_display not in status_except_sub:
                         if data_status_display == '申请专利'.decode('gbk'):
-                            WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, "#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)")))
-                            shouli_sn = browser.find_element_by_css_selector("#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)").text.strip()
+                            WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, "#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(1)")))
+                            shouli_sn = browser.find_element_by_css_selector("#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(1)").text.strip()
                             shouli_sn_list.append(shouli_sn)
                         else:
                             shouli_sn_list.append('None')
-                        data_filaname = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
+                        data_filaname = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(3) > td").text.strip()
                         data_status_list.append(data_status_display)
                         data_sn_list.append(data_sn)
                         data_filename_list.append(data_filaname)
@@ -302,11 +301,11 @@ class FrameZhuanli(wx.Frame):
     def updatedisplay(self, msg):
         t = msg
         if isinstance(t, int):
-            self.output_info.AppendText("完成第%s页" % t)
+            self.output_info.AppendText("完成第%s页".decode('gbk') % t)
         elif t == "Finished":
             self.button_go.Enable()
         else:
-            self.output_info.AppendText("%s" % t)
+            self.output_info.AppendText("%s".decode('gbk') % t)
         self.output_info.AppendText(os.linesep)
 
 
