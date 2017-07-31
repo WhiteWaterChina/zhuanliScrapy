@@ -19,7 +19,7 @@ import re
 
 class FrameZhuanli(wx.Frame):
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 316),
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 411),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
@@ -81,6 +81,44 @@ class FrameZhuanli(wx.Frame):
         bSizer4.Add(self.input_password, 1, wx.ALL, 5)
 
         bSizer12.Add(bSizer4, 0, wx.EXPAND, 5)
+
+        bSizer14 = wx.BoxSizer(wx.VERTICAL)
+
+        self.m_staticText5 = wx.StaticText(self.m_panel1, wx.ID_ANY,
+                                           u"请在如下输入需要抓取专利信息的开始和结束日期！\n日期格式20170731.个位数的日期一定要补全0！", wx.DefaultPosition,
+                                           wx.DefaultSize, 0)
+        self.m_staticText5.Wrap(-1)
+        self.m_staticText5.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.m_staticText5.SetBackgroundColour(wx.Colour(0, 128, 0))
+
+        bSizer14.Add(self.m_staticText5, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        bSizer12.Add(bSizer14, 0, wx.EXPAND | wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        bSizer16 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.m_staticText6 = wx.StaticText(self.m_panel1, wx.ID_ANY, u"开始日期:", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText6.Wrap(-1)
+        self.m_staticText6.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.m_staticText6.SetBackgroundColour(wx.Colour(0, 128, 0))
+
+        bSizer16.Add(self.m_staticText6, 0, wx.ALL, 5)
+
+        self.text_startdate = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                          0)
+        bSizer16.Add(self.text_startdate, 0, wx.ALL, 5)
+
+        self.m_staticText7 = wx.StaticText(self.m_panel1, wx.ID_ANY, u"结束日期:", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText7.Wrap(-1)
+        self.m_staticText7.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.m_staticText7.SetBackgroundColour(wx.Colour(0, 128, 0))
+
+        bSizer16.Add(self.m_staticText7, 0, wx.ALL, 5)
+
+        self.text_enddate = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        bSizer16.Add(self.text_enddate, 0, wx.ALL, 5)
+
+        bSizer12.Add(bSizer16, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.m_panel1.SetSizer(bSizer12)
         self.m_panel1.Layout()
@@ -174,6 +212,12 @@ class FrameZhuanli(wx.Frame):
         department_write = self.input_department.GetValue()
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
+        startdate = self.text_startdate.GetValue().strip()
+        if len(startdate) == 0:
+            startdate = "20170301"
+        enddate = self.text_enddate.GetValue().strip()
+        if len(enddate) == 0:
+            enddate = int(time.strftime('%Y%m%d', time.localtime(time.time()))) + 1
         data_status_list = []
         data_sn_list = []
         data_filename_list = []
@@ -215,10 +259,13 @@ class FrameZhuanli(wx.Frame):
                 data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
                 data_sn_filename = data_sn_filename_link.text.strip()
                 data_sn = data_sn_filename.split('/')[0].strip()
-                if data_status not in except_list and data_sn not in data_sn_list:
+                data_created_at_temp = browser.find_element_by_css_selector(
+                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
+                data_created_at = data_created_at_temp
+                list_data_created_at_limit = data_created_at_temp.split(" ")[0].split("/")
+                data_created_at_limit = "".join(list_data_created_at_limit)
+                if data_status not in except_list and data_sn not in data_sn_list and int(startdate) < int(data_created_at_limit) < int(enddate):
                     data_current_nodename = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
-                    data_created_at_temp = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
-                    data_created_at = data_created_at_temp
                     data_sn_filename_link.click()
                     time.sleep(3)
                     handles = browser.window_handles
@@ -241,8 +288,13 @@ class FrameZhuanli(wx.Frame):
                     if data_status_display not in status_except_sub:
                         if data_status_display == '申请专利'.decode('gbk'):
                             WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, "#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(1)")))
-                            shouli_sn = browser.find_element_by_css_selector("#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)").text.strip()
-                            shouli_sn_list.append(shouli_sn)
+                            list_shouli = browser.find_elements_by_css_selector("#patents-related > div > span.table-content > table > tbody > tr")
+                            list_shouli_sn_single = []
+                            for item_shouli in list_shouli:
+                                shouli_sn = item_shouli.find_element_by_css_selector("td:nth-child(3)").text.strip()
+                                list_shouli_sn_single.append(shouli_sn)
+#                            shouli_sn = browser.find_element_by_css_selector("#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)").text.strip()
+                            shouli_sn_list.append(list_shouli_sn_single)
                         else:
                             shouli_sn_list.append('None')
                         data_filename = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
@@ -306,7 +358,10 @@ class FrameZhuanli(wx.Frame):
                 sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_created_date_list[index_data],
                                                                                    '%Y/%m/%d %H:%M:%S'),
                                      workbook_display.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss', 'border': 1}))
-                sheet.write(2 + index_data, 8, shouli_sn_list[index_data], formatone)
+                if shouli_sn_list[index_data] == "None":
+                    sheet.write(2 + index_data, 8, shouli_sn_list[index_data], formatone)
+                else:
+                    sheet.write(2 + index_data, 8, ";".join(shouli_sn_list[index_data]), formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
