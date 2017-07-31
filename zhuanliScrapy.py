@@ -22,7 +22,7 @@ class FrameZhuanli(wx.Frame):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 316),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
-        self.SetSizeHintsSz(wx.DefaultSize, wx.DefaultSize)
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
         self.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), 70, 90, 90, False, wx.EmptyString))
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
         self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWFRAME))
@@ -224,19 +224,19 @@ class FrameZhuanli(wx.Frame):
                     handles = browser.window_handles
                     browser.switch_to.window(handles[1])
                     try:
-                        WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > th')))
+                        WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(9) > th')))
                     except selenium.common.exceptions.TimeoutException:
                         browser.close()
                         browser.switch_to.window(handles[0])
                         continue
-                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(11) > td > a")
+                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
                     department_name_temp_list = []
                     for item_department in department_temp:
                         department_name_temp_list.append(item_department.text.strip())
                     department_name = "".join(department_name_temp_list)
-                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(7) > td').text.strip()
+                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
                     data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
-                    data_created_by_temp = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(21) > td").text.split(" ")[0].strip()
+                    data_created_by_temp = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(" ")[0].strip()
                     data_created_by = re.search(r"\D*", data_created_by_temp).group()
                     if data_status_display not in status_except_sub:
                         if data_status_display == '申请专利'.decode('gbk'):
@@ -245,10 +245,10 @@ class FrameZhuanli(wx.Frame):
                             shouli_sn_list.append(shouli_sn)
                         else:
                             shouli_sn_list.append('None')
-                        data_filaname = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(3) > td").text.strip()
+                        data_filename = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
                         data_status_list.append(data_status_display)
                         data_sn_list.append(data_sn)
-                        data_filename_list.append(data_filaname)
+                        data_filename_list.append(data_filename)
                         department_name_list.append(department_name)
                         type_invention_list.append(type_invention)
                         data_current_nodename_list.append(data_current_nodename)
