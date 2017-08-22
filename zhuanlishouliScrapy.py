@@ -253,7 +253,7 @@ class FrameZhuanli(wx.Frame):
                 # 获取管理SN
                 data_management_sn = browser.find_element_by_css_selector(
                     "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.patent_management_sn" % line_number).text.strip()
-                print data_management_sn
+#                print data_management_sn
                 # 获取专利类型，发明还是实用
                 data_type = browser.find_element_by_css_selector(
                     "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.patent_patent_name > span" % line_number).text.strip()
