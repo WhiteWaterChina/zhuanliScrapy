@@ -227,10 +227,10 @@ class FrameZhuanli(wx.Frame):
         department_name_list = []
         type_invention_list = []
         shouli_sn_list = []
-        driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
-        browser = webdriver.Chrome(driverpath)
-#        driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
-#        browser = webdriver.PhantomJS(driverpath)
+        # driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
+        # browser = webdriver.Chrome(driverpath)
+        driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
+        browser = webdriver.PhantomJS(driverpath)
         url = "http://10.110.6.34/users/login"
         browser.get(url)
         browser.find_element_by_id("UserEmail").send_keys(username)
@@ -252,6 +252,7 @@ class FrameZhuanli(wx.Frame):
         if self.checkbox_3.GetValue():
             except_list.append('³·Ïú'.decode('gbk'))
         while True:
+            WebDriverWait(browser, 130).until(ec.presence_of_element_located((By.CSS_SELECTOR, 'div#table_page > div > span')))
             current_table_line = browser.find_elements_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
             length_table = len(current_table_line) + 1
             for line_number in range(1, length_table):
@@ -308,10 +309,10 @@ class FrameZhuanli(wx.Frame):
                         data_created_date_list.append(data_created_at)
                     browser.close()
                     browser.switch_to.window(handles[0])
-            current_page_number = int(browser.find_element_by_css_selector("#table_page > div > span").text.strip())
+            current_page_number = int(browser.find_element_by_css_selector("div#table_page > div > span").text.strip())
             self.updatedisplay(current_page_number)
             try:
-                total_bottom_div = len(browser.find_elements_by_css_selector("#table_page > div > a"))
+                total_bottom_div = len(browser.find_elements_by_css_selector("div#table_page > div > a"))
                 next_page = browser.find_element_by_css_selector(
                     "#table_page > div > a:nth-child(%d)" % total_bottom_div)
                 if next_page.text != "ÏÂÒ»Ò³".decode('gbk'):
