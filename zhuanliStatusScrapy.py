@@ -19,7 +19,7 @@ import re
 
 class FrameZhuanli(wx.Frame):
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利状态信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 411),
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"撰写中专利状态信息爬取系统", pos=wx.DefaultPosition, size=wx.Size(393, 411),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
@@ -229,6 +229,7 @@ class FrameZhuanli(wx.Frame):
         shouli_sn_list = []
         last_update_list = []
         date_last_update_list = []
+        daili_list = []
         pattern_date_last_update = re.compile(r"\d+/\d+/\d+")
         # driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
         # browser = webdriver.Chrome(driverpath)
@@ -246,6 +247,18 @@ class FrameZhuanli(wx.Frame):
         browser.find_element_by_css_selector(
             "#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
         time.sleep(3)
+        # 每页50条
+        WebDriverWait(browser, 130).until(
+            ec.presence_of_element_located((By.CSS_SELECTOR, 'div#table_page > div > span')))
+        ActionChains(browser).move_to_element(browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select")).perform()
+        browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select").click()
+        time.sleep(1)
+        ActionChains(browser).move_to_element(browser.find_element_by_css_selector(
+            "#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select > option:nth-child(2)")).perform()
+        browser.find_element_by_css_selector(
+            "#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select > option:nth-child(2)").click()
+        WebDriverWait(browser, 130).until(ec.element_to_be_clickable((By.CSS_SELECTOR, 'div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
+        time.sleep(30)
         except_list = []
         status_except_sub = ["撰写驳回".decode('gbk')]
         if self.checkbox_1.GetValue():
@@ -259,6 +272,7 @@ class FrameZhuanli(wx.Frame):
             current_table_line = browser.find_elements_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
             length_table = len(current_table_line) + 1
             for line_number in range(1, length_table):
+                WebDriverWait(browser, 130).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number)))
                 data_status = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
                 data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
                 data_sn_filename = data_sn_filename_link.text.strip()
@@ -287,6 +301,9 @@ class FrameZhuanli(wx.Frame):
                         for item_department in department_temp:
                             department_name_temp_list.append(item_department.text.strip())
                         department_name = "".join(department_name_temp_list)
+                        data_daili = browser.find_element_by_css_selector(
+                            "#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(14) > td > a").text.strip()
+                        print data_daili
                         type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
                         temp_last_update = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(21) > td").text.strip()
                         last_update = temp_last_update.split(" ")[0]
@@ -317,6 +334,7 @@ class FrameZhuanli(wx.Frame):
                             data_created_date_list.append(data_created_at)
                             last_update_list.append(last_update)
                             date_last_update_list.append(date_last_update)
+                            daili_list.append(data_daili)
                     browser.close()
                     browser.switch_to.window(handles[0])
             current_page_number = int(browser.find_element_by_css_selector("div#table_page > div > span").text.strip())
@@ -330,7 +348,7 @@ class FrameZhuanli(wx.Frame):
                     break
                 else:
                     next_page.click()
-                    time.sleep(3)
+                    time.sleep(30)
                     WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
             except selenium.common.exceptions.NoSuchElementException:
                 browser.quit()
@@ -338,7 +356,7 @@ class FrameZhuanli(wx.Frame):
 
         title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'),
                        '发明类型'.decode('gbk'), '当前处理节点'.decode('gbk'), '创建者'.decode('gbk'), '创建时间'.decode('gbk'),
-                       '受理申请编号'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk')]
+                       '受理申请编号'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '代理名称'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         workbook_display = xlsxwriter.Workbook('%s专利状态统计表-%s.xlsx'.decode('gbk') % (department_write, timestamp))
         sheet = workbook_display.add_worksheet('2017财年%s专利状态统计表'.decode('gbk') % department_write)
@@ -356,8 +374,8 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('C:C', 42)
         sheet.set_column('D:D', 33)
         sheet.set_column('J:J', 17)
-        sheet.set_column('K:K', 14)
-        sheet.merge_range(0, 0, 0, 8, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
+        sheet.set_column('K:L', 14)
+        sheet.merge_range(0, 0, 0, 8, "%s2017财年撰写中专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
             for index_data, item_data in enumerate(data_sn_list):
@@ -379,6 +397,7 @@ class FrameZhuanli(wx.Frame):
                 sheet.write_datetime(2 + index_data, 10, datetime.datetime.strptime(date_last_update_list[index_data],
                                                                                    '%Y/%m/%d'),
                                      workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                sheet.write(2 + index_data, 11, daili_list[index_data], formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
