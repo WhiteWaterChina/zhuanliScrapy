@@ -229,6 +229,7 @@ class FrameZhuanli(wx.Frame):
         shouli_sn_list = []
         # driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
         # browser = webdriver.Chrome(driverpath)
+
         driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
         browser = webdriver.PhantomJS(driverpath)
         url = "http://10.110.6.34/users/login"
@@ -243,6 +244,18 @@ class FrameZhuanli(wx.Frame):
         browser.find_element_by_css_selector(
             "#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
         time.sleep(3)
+        #每页50条
+        WebDriverWait(browser, 130).until(
+            ec.presence_of_element_located((By.CSS_SELECTOR, 'div#table_page > div > span')))
+        ActionChains(browser).move_to_element(browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select")).perform()
+        browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select").click()
+        time.sleep(1)
+        ActionChains(browser).move_to_element(browser.find_element_by_css_selector(
+            "#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select > option:nth-child(2)")).perform()
+        browser.find_element_by_css_selector(
+            "#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select > option:nth-child(2)").click()
+        WebDriverWait(browser, 130).until(ec.element_to_be_clickable((By.CSS_SELECTOR, 'div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
+        time.sleep(30)
         except_list = []
         status_except_sub = ["撰写驳回".decode('gbk')]
         if self.checkbox_1.GetValue():
@@ -252,20 +265,24 @@ class FrameZhuanli(wx.Frame):
         if self.checkbox_3.GetValue():
             except_list.append('撤销'.decode('gbk'))
         while True:
-            current_table_line = browser.find_elements_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
+            WebDriverWait(browser, 130).until(ec.presence_of_element_located((By.CSS_SELECTOR, 'div#table_page > div > span')))
+            current_table_line = browser.find_elements_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
             length_table = len(current_table_line) + 1
+            print length_table
             for line_number in range(1, length_table):
-                data_status = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
-                data_sn_filename_link = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
+                print line_number
+                WebDriverWait(browser, 130).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number)))
+                data_status = browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
+                data_sn_filename_link = browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
                 data_sn_filename = data_sn_filename_link.text.strip()
                 data_sn = data_sn_filename.split('/')[0].strip()
                 data_created_at_temp = browser.find_element_by_css_selector(
-                    "#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
+                    "div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
                 data_created_at = data_created_at_temp
                 list_data_created_at_limit = data_created_at_temp.split(" ")[0].split("/")
                 data_created_at_limit = "".join(list_data_created_at_limit)
                 if data_status not in except_list and data_sn not in data_sn_list and int(startdate) < int(data_created_at_limit) < int(enddate):
-                    data_current_nodename = browser.find_element_by_css_selector("#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
+                    data_current_nodename = browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
                     data_sn_filename_link.click()
                     time.sleep(3)
                     handles = browser.window_handles
@@ -306,12 +323,13 @@ class FrameZhuanli(wx.Frame):
                         data_current_nodename_list.append(data_current_nodename)
                         data_creator_list.append(data_created_by)
                         data_created_date_list.append(data_created_at)
+                        print data_sn
                     browser.close()
                     browser.switch_to.window(handles[0])
-            current_page_number = int(browser.find_element_by_css_selector("#table_page > div > span").text.strip())
+            current_page_number = int(browser.find_element_by_css_selector("div#table_page > div > span").text.strip())
             self.updatedisplay(current_page_number)
             try:
-                total_bottom_div = len(browser.find_elements_by_css_selector("#table_page > div > a"))
+                total_bottom_div = len(browser.find_elements_by_css_selector("div#table_page > div > a"))
                 next_page = browser.find_element_by_css_selector(
                     "#table_page > div > a:nth-child(%d)" % total_bottom_div)
                 if next_page.text != "下一页".decode('gbk'):
@@ -319,7 +337,7 @@ class FrameZhuanli(wx.Frame):
                     break
                 else:
                     next_page.click()
-                    time.sleep(3)
+                    time.sleep(30)
                     WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
             except selenium.common.exceptions.NoSuchElementException:
                 browser.quit()
