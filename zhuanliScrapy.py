@@ -311,8 +311,8 @@ class FrameZhuanli(wx.Frame):
                        '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '创建时间'.decode('gbk'),
                        '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '代理名称'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
-        workbook_display = xlsxwriter.Workbook('%s专利统计表-%s.xlsx'.decode('gbk') % (department_write, timestamp))
-        sheet = workbook_display.add_worksheet('2017财年%s专利统计表'.decode('gbk') % department_write)
+        workbook_display = xlsxwriter.Workbook('%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
+        sheet = workbook_display.add_worksheet('2017财年%s专利总览'.decode('gbk') % department_write)
         formatone = workbook_display.add_format()
         formatone.set_border(1)
         formattwo = workbook_display.add_format()
