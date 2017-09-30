@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding:cp936 -*-
 # Author:yanshuo@inspur.com
-
-import wx
-import time
-import os
-from threading import Thread
-import selenium.common.exceptions
-from selenium import webdriver
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-import xlsxwriter
-import datetime
+import requests
 import re
-
+from bs4 import BeautifulSoup
+import xlsxwriter
+import os
+import time
+import datetime
+from threading import Thread
+import wx
+import urllib2
 
 class FrameZhuanli(wx.Frame):
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息扒取系统", pos=wx.DefaultPosition, size=wx.Size(393, 411),
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"专利信息获取系统", pos=wx.DefaultPosition, size=wx.Size(393, 411),
                           style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
@@ -133,44 +128,6 @@ class FrameZhuanli(wx.Frame):
 
         bSizer8.Add(bSizer9, 1, wx.EXPAND, 5)
 
-        self.test_info = wx.StaticText(self, wx.ID_ANY, u"请选择排除在外的状态", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.test_info.Wrap(-1)
-        self.test_info.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOTEXT))
-        self.test_info.SetBackgroundColour(wx.Colour(0, 128, 0))
-
-        bSizer8.Add(self.test_info, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        bSizer10 = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.m_panel2 = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
-        bSizer15 = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.checkbox_1 = wx.CheckBox(self.m_panel2, wx.ID_ANY, u"撤销", wx.DefaultPosition, wx.Size(-1, -1), 0)
-        self.checkbox_1.SetValue(True)
-        self.checkbox_1.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), 70, 90, 90, False, wx.EmptyString))
-        self.checkbox_1.SetForegroundColour(wx.Colour(0, 255, 64))
-
-        bSizer15.Add(self.checkbox_1, 0, wx.ALL, 5)
-
-        self.checkbox_2 = wx.CheckBox(self.m_panel2, wx.ID_ANY, u"退回发起人", wx.DefaultPosition, wx.Size(-1, -1), 0)
-        self.checkbox_2.SetValue(True)
-        self.checkbox_2.SetForegroundColour(wx.Colour(0, 255, 64))
-
-        bSizer15.Add(self.checkbox_2, 0, wx.ALL, 5)
-
-        self.checkbox_3 = wx.CheckBox(self.m_panel2, wx.ID_ANY, u"驳回", wx.DefaultPosition, wx.Size(-1, -1), 0)
-        self.checkbox_3.SetValue(True)
-        self.checkbox_3.SetForegroundColour(wx.Colour(0, 255, 64))
-
-        bSizer15.Add(self.checkbox_3, 0, wx.ALL, 5)
-
-        self.m_panel2.SetSizer(bSizer15)
-        self.m_panel2.Layout()
-        bSizer15.Fit(self.m_panel2)
-        bSizer10.Add(self.m_panel2, 1, wx.EXPAND | wx.ALL, 5)
-
-        bSizer8.Add(bSizer10, 0, wx.EXPAND, 5)
-
         bSizer1.Add(bSizer8, 0, wx.EXPAND, 5)
 
         bSizer5 = wx.BoxSizer(wx.HORIZONTAL)
@@ -203,9 +160,6 @@ class FrameZhuanli(wx.Frame):
         self._thread = Thread(target=self.run, args=())
         self._thread.daemon = True
 
-    def close(self, event):
-        self.Close()
-
     def run(self):
         self.updatedisplay("开始抓取".decode('gbk'))
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
@@ -218,137 +172,147 @@ class FrameZhuanli(wx.Frame):
         enddate = self.text_enddate.GetValue().strip()
         if len(enddate) == 0:
             enddate = int(time.strftime('%Y%m%d', time.localtime(time.time()))) + 1
-        data_status_list = []
-        data_sn_list = []
-        data_filename_list = []
-        data_creator_list = []
-        data_created_date_list = []
-        data_current_nodename_list = []
-        department_name_list = []
-        type_invention_list = []
-        shouli_sn_list = []
-        # driverpath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
-        # browser = webdriver.Chrome(driverpath)
+        startdate_filter = startdate[0:4] + "%2F" + startdate[4:6] + "%2F" + startdate[6:8]
+        enddate_filter = enddate[0:4] + "%2F" + enddate[4:6] + "%2F" + enddate[6:8]
+        #排除在外的状态
+        except_list = ["撰写驳回".decode('gbk'),'待决定'.decode('gbk')]
+        #模拟登陆
+        url_login = "http://10.110.6.34/users/login"
+        payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
+        headers_base = {
+            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept-encoding': "gzip, deflate",
+            'accept-language': "zh-CN,zh;q=0.8",
+            'cache-control': "no-cache",
+            'connection': "keep-alive",
+            'content-length': "147",
+            'content-type': "application/x-www-form-urlencoded",
+            'host': "10.110.6.34",
+            'origin': "http://10.110.6.34",
+            'referer': "http://10.110.6.34/users/login",
+            'upgrade-insecure-requests': "1",
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        #    'postman-token': "a99dbf7b-9cc3-8690-1f7f-fb241a97c835"
+            }
+        get_data = requests.session()
+        get_data.post(url_login, data=payload_login, headers=headers_base)
 
-        driverpath = os.path.join(os.path.abspath(os.path.curdir), "phantomjs.exe")
-        browser = webdriver.PhantomJS(driverpath)
-        url = "http://10.110.6.34/users/login"
-        browser.get(url)
-        browser.find_element_by_id("UserEmail").send_keys(username)
-        browser.find_element_by_id("EmailPassword").send_keys(password)
-        browser.find_element_by_css_selector("button.new-login").click()
-        time.sleep(5)
-        browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")
-        ActionChains(browser).move_to_element(
-            browser.find_element_by_css_selector("#header > ul > li:nth-child(2)")).perform()
-        browser.find_element_by_css_selector(
-            "#header > ul > li:nth-child(2) > div > div > ul > li:nth-child(2) > a").click()
-        time.sleep(3)
-        #每页50条
-        WebDriverWait(browser, 130).until(
-            ec.presence_of_element_located((By.CSS_SELECTOR, 'div#table_page > div > span')))
-        ActionChains(browser).move_to_element(browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select")).perform()
-        browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select").click()
-        time.sleep(1)
-        ActionChains(browser).move_to_element(browser.find_element_by_css_selector(
-            "#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select > option:nth-child(2)")).perform()
-        browser.find_element_by_css_selector(
-            "#list-result > div.template-list-condition > div.menu-bar > div.menu-bar-list-pagination > div.menu-bar-page > select > option:nth-child(2)").click()
-        WebDriverWait(browser, 130).until(ec.element_to_be_clickable((By.CSS_SELECTOR, 'div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
-        time.sleep(30)
-        except_list = []
-        status_except_sub = ["撰写驳回".decode('gbk')]
-        if self.checkbox_1.GetValue():
-            except_list.append('驳回'.decode('gbk'))
-        if self.checkbox_2.GetValue():
-            except_list.append('退回发起人'.decode('gbk'))
-        if self.checkbox_3.GetValue():
-            except_list.append('撤销'.decode('gbk'))
-        while True:
-            WebDriverWait(browser, 130).until(ec.presence_of_element_located((By.CSS_SELECTOR, 'div#table_page > div > span')))
-            current_table_line = browser.find_elements_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr")
-            length_table = len(current_table_line) + 1
-            print length_table
-            for line_number in range(1, length_table):
-                print line_number
-                WebDriverWait(browser, 130).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number)))
-                data_status = browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.status > span" % line_number).text.strip()
-                data_sn_filename_link = browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.subject > a " % line_number)
-                data_sn_filename = data_sn_filename_link.text.strip()
-                data_sn = data_sn_filename.split('/')[0].strip()
-                data_created_at_temp = browser.find_element_by_css_selector(
-                    "div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.created_at" % line_number).text.strip()
-                data_created_at = data_created_at_temp
-                list_data_created_at_limit = data_created_at_temp.split(" ")[0].split("/")
-                data_created_at_limit = "".join(list_data_created_at_limit)
-                if data_status not in except_list and data_sn not in data_sn_list and int(startdate) < int(data_created_at_limit) < int(enddate):
-                    data_current_nodename = browser.find_element_by_css_selector("div#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(%d) > td.cos.node_name" % line_number).text.strip()
-                    data_sn_filename_link.click()
-                    time.sleep(3)
-                    handles = browser.window_handles
-                    browser.switch_to.window(handles[1])
-                    try:
-                        WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(9) > th')))
-                    except selenium.common.exceptions.TimeoutException:
-                        browser.close()
-                        browser.switch_to.window(handles[0])
-                        continue
-                    department_temp = browser.find_elements_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(10) > td > a")
-                    department_name_temp_list = []
-                    for item_department in department_temp:
-                        department_name_temp_list.append(item_department.text.strip())
-                    department_name = "".join(department_name_temp_list)
-                    type_invention = browser.find_element_by_css_selector('#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(6) > td').text.strip()
-                    data_status_display = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.major-header > div.major-title > span").text.strip()
-                    data_created_by_temp = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(20) > td").text.split(" ")[0].strip()
-                    data_created_by = re.search(r"\D*", data_created_by_temp).group()
-                    if data_status_display not in status_except_sub:
-                        if data_status_display == '申请专利'.decode('gbk'):
-                            WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, "#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(1)")))
-                            list_shouli = browser.find_elements_by_css_selector("#patents-related > div > span.table-content > table > tbody > tr")
-                            list_shouli_sn_single = []
-                            for item_shouli in list_shouli:
-                                shouli_sn = item_shouli.find_element_by_css_selector("td:nth-child(3)").text.strip()
-                                list_shouli_sn_single.append(shouli_sn)
-#                            shouli_sn = browser.find_element_by_css_selector("#patents-related > div:nth-child(1) > span:nth-child(2) > table > tbody > tr > td:nth-child(3)").text.strip()
-                            shouli_sn_list.append(list_shouli_sn_single)
-                        else:
-                            shouli_sn_list.append('None')
-                        data_filename = browser.find_element_by_css_selector("#main > div.major > div.major-section.clearfix > div.content-wrapper.clearfix.layout-detail-main > div.basic-info > div.major-left > div > table > tbody > tr:nth-child(2) > td").text.strip()
-                        data_status_list.append(data_status_display)
-                        data_sn_list.append(data_sn)
-                        data_filename_list.append(data_filename)
-                        department_name_list.append(department_name)
-                        type_invention_list.append(type_invention)
-                        data_current_nodename_list.append(data_current_nodename)
-                        data_creator_list.append(data_created_by)
-                        data_created_date_list.append(data_created_at)
-                        print data_sn
-                    browser.close()
-                    browser.switch_to.window(handles[0])
-            current_page_number = int(browser.find_element_by_css_selector("div#table_page > div > span").text.strip())
-            self.updatedisplay(current_page_number)
-            try:
-                total_bottom_div = len(browser.find_elements_by_css_selector("div#table_page > div > a"))
-                next_page = browser.find_element_by_css_selector(
-                    "#table_page > div > a:nth-child(%d)" % total_bottom_div)
-                if next_page.text != "下一页".decode('gbk'):
-                    browser.quit()
-                    break
-                else:
-                    next_page.click()
-                    time.sleep(30)
-                    WebDriverWait(browser, 100).until(ec.presence_of_element_located((By.CSS_SELECTOR, '#list-result > div.template-list-condition > div.list-mail-con > table > tbody > tr:nth-child(1) > td.cos.status > span')))
-            except selenium.common.exceptions.NoSuchElementException:
-                browser.quit()
-                break
+        #获取数据
+        #先使用limit=1来登录获取最大值。
+        url_data = "http://10.110.6.34/invention/inventions/index"
+        payload_1 = "limit=1&filter%5BInvention.updated%5D%5Bfrom%5D={starttime}&filter%5BInvention.updated%5D%5Bto%5D={endtime}".format(starttime=startdate_filter, endtime=enddate_filter)
+        headers_data = {
+            'host': "10.110.6.34",
+            'connection': "keep-alive",
+            'content-length': "29",
+            'accept': "application/json, text/javascript, */*; q=0.01",
+            'origin': "http://10.110.6.34",
+            'x-requested-with': "XMLHttpRequest",
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            'content-type': "application/x-www-form-urlencoded",
+            'referer': "http://10.110.6.34/invention/inventions/index",
+            'accept-encoding': "gzip, deflate",
+            'accept-language': "zh-CN,zh;q=0.8",
+            'cache-control': "no-cache",
+            }
+
+        response_1 = get_data.post(url_data, data=payload_1, headers=headers_data, verify=False)
+        data_1 = response_1.content
+        #获取最大值
+        max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
+
+        #使用最大值来获取信息
+        #payload_data = "limit=%s" % max_number
+        payload_data = "limit={max_number}&filter%5BInvention.updated%5D%5Bfrom%5D={starttime}&filter%5BInvention.updated%5D%5Bto%5D={endtime}".format(max_number=max_number,starttime=startdate_filter, endtime=enddate_filter)
+        response_data = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
+        data_original = response_data.content
+
+        #获取编号
+        list_data_sn = re.findall(r'\"Invention.track_number\"\:\"(\d+)"', data_original)
+        #获取链接
+        #获取链接的数字
+        data_link_temp = re.findall(r'"Invention.title":"<a href=\\"http:\\/\\/10.110.6.34\\/invention\\/inventions\\/view\\/(\d+)\\" target=\\"_blank\\"', data_original)
+        #再将数字连接到前置地址上
+        list_data_link = ["http://10.110.6.34/invention/inventions/view/" + i for i in data_link_temp]
+        #获取专利名称。先获取返回值，然后再转换编码
+        data_name_temp = re.findall(r'"Invention.title":"<a.*?target=\\"_blank\\">(.*?)<\\/a>', data_original)
+        list_data_name = [i.decode('unicode_escape') for i in data_name_temp]
+        #获取部门和处。先获取返回值，然后再处理编码和替换多余字符
+        data_department_temp = re.findall(r'"Invention.organization":"<a.*?title=(.*?)>', data_original)
+        list_data_department = [i.decode('unicode_escape').replace(" &gt; ", "") for i in data_department_temp]
+        #获取创建时间。先获取返回值，然后替换字符
+        data_created_date_temp = re.findall(r'"Invention.created":"(\d+\\/\d+\\/\d+)"', data_original)
+        list_data_created_date = [i.replace("\\/", "-") for i in data_created_date_temp]
+        #获取更新时间。先获取返回值，然后替换字符
+        data_update_date_temp = re.findall(r'"Invention.updated":"(\d+\\/\d+\\/\d+)"', data_original)
+        list_data_update_date = [i.replace("\\/", "-") for i in data_update_date_temp]
+        #获取当前状态.先获取返回值，然后再转换编码
+        data_status_temp = re.findall(r'"Invention.node_status":"<a href=.*?>(.*?)<\\/a>', data_original)
+        list_data_status = [i.decode('unicode_escape') for i in data_status_temp]
+        #先处理一遍数据，把撰写驳回或者加上待决定的去除
+        list_status = []
+        list_sn = []
+        list_link = []
+        list_name = []
+        list_department = []
+        list_created_date = []
+        list_updated_date = []
+        for index_status, item_status in enumerate(list_data_status):
+            if item_status not in except_list:
+                list_status.append(item_status)
+                list_sn.append(list_data_sn[index_status])
+                list_link.append(list_data_link[index_status])
+                list_name.append(list_data_name[index_status])
+                list_department.append(list_data_department[index_status])
+                list_created_date.append(list_data_created_date[index_status])
+                list_updated_date.append(list_data_update_date[index_status])
+        headers_link = {
+            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept-encoding': "gzip, deflate",
+            'accept-language': "zh-CN,zh;q=0.8",
+            'cache-control': "no-cache",
+            'connection': "keep-alive",
+            'host': "10.110.6.34",
+            'referer': "http://10.110.6.34/invention/inventions/index",
+            'upgrade-insecure-requests': "1",
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            }
+
+        list_data_daili = []
+        list_data_name_lastupdate = []
+        list_type_invention = []
+        list_username_created = []
+
+        a = int(len(list_status) / 10)
+
+        for index, item in enumerate(list_link):
+            if index % a == 0:
+                b = int(index / a) * 10
+                self.updatedisplay(b)
+            data_temp = get_data.get(item, headers=headers_link, verify=False).text
+            data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
+            type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
+            name_daili = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+            name_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split(" ")[0]
+            name_last_update = re.search(r"\D*", name_last_update_temp).group()
+            name_creator_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(20) > td")[0].get_text().strip().split(" ")[0]
+            name_creator = re.search(r"\D*", name_creator_temp).group()
+
+
+            if len(name_daili) != 0:
+                list_data_daili.append(name_daili[0].get_text().strip())
+            else:
+                list_data_daili.append("None")
+            list_type_invention.append(type_invention)
+            list_data_name_lastupdate.append(name_last_update)
+            list_username_created.append(name_creator)
 
         title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'),
-                       '发明类型'.decode('gbk'), '当前处理节点'.decode('gbk'), '创建者'.decode('gbk'), '创建时间'.decode('gbk'),
-                       '受理申请编号'.decode('gbk')]
+                       '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '创建时间'.decode('gbk'),
+                       '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '代理名称'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
-        workbook_display = xlsxwriter.Workbook('%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
-        sheet = workbook_display.add_worksheet('2017财年%s专利统计'.decode('gbk') % department_write)
+        workbook_display = xlsxwriter.Workbook('%s专利统计表-%s.xlsx'.decode('gbk') % (department_write, timestamp))
+        sheet = workbook_display.add_worksheet('2017财年%s专利统计表'.decode('gbk') % department_write)
         formatone = workbook_display.add_format()
         formatone.set_border(1)
         formattwo = workbook_display.add_format()
@@ -358,33 +322,41 @@ class FrameZhuanli(wx.Frame):
         formattitle.set_align('center')
         formattitle.set_bg_color("yellow")
         formattitle.set_bold(True)
-        sheet.set_column('H:I', 22)
+
         sheet.set_column('B:B', 14)
         sheet.set_column('C:C', 42)
         sheet.set_column('D:D', 33)
-        sheet.merge_range(0, 0, 0, 8, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
+        sheet.set_column('G:I', 15)
+        sheet.set_column('J:J', 17)
+
+        sheet.set_column('K:L', 14)
+        sheet.merge_range(0, 0, 0, 9, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
-            for index_data, item_data in enumerate(data_sn_list):
-                sheet.write(2 + index_data, 0, data_status_list[index_data], formatone)
-                sheet.write(2 + index_data, 1, data_sn_list[index_data], formatone)
-                sheet.write(2 + index_data, 2, data_filename_list[index_data], formatone)
-                sheet.write(2 + index_data, 3, department_name_list[index_data], formatone)
-                sheet.write(2 + index_data, 4, type_invention_list[index_data], formatone)
-                sheet.write(2 + index_data, 5, data_current_nodename_list[index_data], formatone)
-                sheet.write(2 + index_data, 6, data_creator_list[index_data], formatone)
-                sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_created_date_list[index_data],
-                                                                                   '%Y/%m/%d %H:%M:%S'),
-                                     workbook_display.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss', 'border': 1}))
-                if shouli_sn_list[index_data] == "None":
-                    sheet.write(2 + index_data, 8, shouli_sn_list[index_data], formatone)
-                else:
-                    sheet.write(2 + index_data, 8, ";".join(shouli_sn_list[index_data]), formatone)
+            for index_data, item_data in enumerate(list_status):
+                sheet.write(2 + index_data, 0, item_data, formatone)
+                sheet.write(2 + index_data, 1, list_sn[index_data], formatone)
+                sheet.write(2 + index_data, 2, list_name[index_data], formatone)
+                sheet.write(2 + index_data, 3, list_department[index_data], formatone)
+                sheet.write(2 + index_data, 4, list_type_invention[index_data], formatone)
+                sheet.write(2 + index_data, 5, list_username_created[index_data], formatone)
+                sheet.write_datetime(2 + index_data, 6, datetime.datetime.strptime(list_created_date[index_data],
+                                                                                   '%Y-%m-%d'),
+                                     workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+
+                sheet.write(2 + index_data, 7, list_data_name_lastupdate[index_data], formatone)
+                sheet.write_datetime(2 + index_data, 8, datetime.datetime.strptime(list_data_update_date[index_data],
+                                                                                    '%Y-%m-%d'),
+                                     workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                sheet.write(2 + index_data, 9, list_data_daili[index_data], formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
         time.sleep(1)
         self.updatedisplay("Finished")
+
+    def close(self, event):
+        self.Close()
 
     def onbutton(self, event):
         self._thread.start()
@@ -395,13 +367,12 @@ class FrameZhuanli(wx.Frame):
     def updatedisplay(self, msg):
         t = msg
         if isinstance(t, int):
-            self.output_info.AppendText("完成第%s页".decode('gbk') % t)
+            self.output_info.AppendText("完成".decode('gbk') + unicode(t) + "%" )
         elif t == "Finished":
             self.button_go.Enable()
         else:
             self.output_info.AppendText("%s".decode('gbk') % t)
         self.output_info.AppendText(os.linesep)
-
 
 if __name__ == '__main__':
     app = wx.App()
