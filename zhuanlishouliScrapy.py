@@ -258,8 +258,7 @@ class FrameZhuanli(wx.Frame):
 
         # 获取受理号
         data_shouli_sn_list = re.findall(r'"PreliminaryBase.application_number":"(\w+\.*?\w*?)","PreliminaryBase.filed_date"', data_original)
-        print len(data_shouli_sn_list)
-        print data_shouli_sn_list
+
         #获取申请时间
         data_shenqing_date_temp = re.findall(r'"PreliminaryBase.filed_date":"(\d+\\/\d+\\/\d+)"', data_original)
         data_shenqing_date_list = [i.replace("\\/", "-") for i in data_shenqing_date_temp]
