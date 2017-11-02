@@ -174,6 +174,14 @@ list_zhuanxie_date_creator_confirm = []
 list_zhuanxie_date_final = []
 list_except_process = ["驳回".decode('gbk'), "撤回".decode('gbk'), "退回".decode('gbk')]
 for index_log, item_log in enumerate(list_link_log):
+    tijiao_date_final = ""
+    tijiao_date_lingdao = ""
+    tijiao_date_jiekouren = ""
+    tijiao_date_start = ""
+    zhuanxie_date_final = ""
+    zhuanxie_date_creator_confirm = ""
+    zhuanxie_date_daili = ""
+    zhuanxie_date_start = ""
     data_temp_log = get_data.get(item_log, headers=headers_get_log, verify=False).text
     data_log_tobe_filter = BeautifulSoup(data_temp_log, "html.parser")
     # 获取状态，是提案中还是撰写中。等等
@@ -206,7 +214,10 @@ for index_log, item_log in enumerate(list_link_log):
             list_tijiao_action_temp_1 = re.findall(r',"action_name":"((?:\\\w+){0,20})","', data_temp_tijiao)
             list_tijiao_action_temp_2 = [i.decode('unicode_escape') for i in list_tijiao_action_temp_1]
             if list_tijiao_action_temp_2[0] in list_except_process:
-                continue
+                tijiao_date_final = "None"
+                tijiao_date_lingdao = "None"
+                tijiao_date_jiekouren = "None"
+                tijiao_date_start = "None"
             else:
                 # 节点名称
                 list_tijiao_activity_name_temp_1 = re.findall(r'{"activity_name":"((?:\\\w+){0,20})"', data_temp_tijiao)
@@ -247,11 +258,13 @@ for index_log, item_log in enumerate(list_link_log):
                     tijiao_date_lingdao = "None"
                     tijiao_date_jiekouren = "None"
                     tijiao_date_start = "None"
+                break
 
         list_tijiao_date_final.append(tijiao_date_final)
         list_tijiao_date_lingdao.append(tijiao_date_lingdao)
         list_tijiao_date_jiekouren.append(tijiao_date_jiekouren)
         list_tijiao_date_start.append(tijiao_date_start)
+
         list_zhuanxie_date_final.append("None")
         list_zhuanxie_date_creator_confirm.append("None")
         list_zhuanxie_date_daili.append("None")
@@ -264,7 +277,10 @@ for index_log, item_log in enumerate(list_link_log):
             list_zhuanxie_action_temp_1 = re.findall(r',"action_name":"((?:\\\w+){0,20})","', data_temp_zhuanxie)
             list_zhuanxie_action_temp_2 = [i.decode('unicode_escape') for i in list_zhuanxie_action_temp_1]
             if list_zhuanxie_action_temp_2[0] in list_except_process:
-                continue
+                zhuanxie_date_final = "None"
+                zhuanxie_date_creator_confirm = "None"
+                zhuanxie_date_daili = "None"
+                zhuanxie_date_start = "None"
             else:
                 #节点名称
                 list_zhuanxie_activity_name_temp_1 = re.findall(r'{"activity_name":"((?:\\\w+){0,20})"', data_temp_zhuanxie)
@@ -305,6 +321,7 @@ for index_log, item_log in enumerate(list_link_log):
                     zhuanxie_date_creator_confirm = "None"
                     zhuanxie_date_daili = "None"
                     zhuanxie_date_start = "None"
+                break
 
         list_zhuanxie_date_final.append(zhuanxie_date_final)
         list_zhuanxie_date_creator_confirm.append(zhuanxie_date_creator_confirm)
@@ -319,23 +336,24 @@ for index_log, item_log in enumerate(list_link_log):
             list_tijiao_date_jiekouren.append("None")
             list_tijiao_date_start.append("None")
         else:
-            for index_tijiao_sub, item_tijiao_sub in enumerate(list_tijiao_process_url_temp_1):
-                data_temp_tijiao = get_data.get(item_tijiao_sub, headers=headers_get_log, verify=False).text
+            for index_tijiao, item_tijiao in enumerate(list_tijiao_process_url_temp_1):
+                data_temp_tijiao = get_data.get(item_tijiao, headers=headers_get_log, verify=False).text
                 # 获取审批结果
                 list_tijiao_action_temp_1 = re.findall(r',"action_name":"((?:\\\w+){0,20})","', data_temp_tijiao)
                 list_tijiao_action_temp_2 = [i.decode('unicode_escape') for i in list_tijiao_action_temp_1]
                 if list_tijiao_action_temp_2[0] in list_except_process:
+                    #如果有撰写流程，但是提交流程却被博汇。则说明此条专利流程也是错误的。时间点全部都是None.
                     list_tijiao_date_final.append("None")
                     list_tijiao_date_lingdao.append("None")
                     list_tijiao_date_jiekouren.append("None")
                     list_tijiao_date_start.append("None")
                 else:
                     # 节点名称
-                    list_tijiao_activity_name_temp_1 = re.findall(r'{"activity_name":"((?:\\\w+){0,20})"', data_temp_tijiao)
+                    list_tijiao_activity_name_temp_1 = re.findall(r'{"activity_name":"((?:\\\w+){0,20})"', data_temp_tijiao_sub)
                     list_tijiao_activity_name_temp_3 = [i.decode('unicode_escape') for i in list_tijiao_activity_name_temp_1]
                     list_tijiao_activity_name_temp_2 = []
                     # 节点时间
-                    list_tijiao_created_at_temp_1 = re.findall(r'"created_at":"(\d+\\/\d+\\/\d+)', data_temp_tijiao)
+                    list_tijiao_created_at_temp_1 = re.findall(r'"created_at":"(\d+\\/\d+\\/\d+)', data_temp_tijiao_sub)
                     list_tijiao_created_at_temp_3 = [i.replace("\\/", "-") for i in list_tijiao_created_at_temp_1]
                     list_tijiao_created_at_temp_2 = []
                     #处理节点数据，排除掉重复的节点，如专利工程师审核阶段进行转交等情况。
@@ -369,6 +387,8 @@ for index_log, item_log in enumerate(list_link_log):
                         tijiao_date_lingdao = "None"
                         tijiao_date_jiekouren = "None"
                         tijiao_date_start = "None"
+                    #获取到一次没被驳回的提交流程结果就退出整个for循环。
+                    break
 
             list_tijiao_date_final.append(tijiao_date_final)
             list_tijiao_date_lingdao.append(tijiao_date_lingdao)
