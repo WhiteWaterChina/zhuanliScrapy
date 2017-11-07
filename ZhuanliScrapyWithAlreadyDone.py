@@ -372,7 +372,8 @@ class FrameZhuanli(wx.Frame):
                 # print data_soup_tobe_filter
                 status_second = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
                 type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
-                creator = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                creator_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                creator = re.search(r"\D*", creator_temp).group()
                 department_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
                 department = "".join([i.get_text().strip() for i in department_temp])
                 name_daili = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
@@ -404,7 +405,8 @@ class FrameZhuanli(wx.Frame):
                 # print data_soup_tobe_filter
                 status_second_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
                 type_invention_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
-                creator_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                creator_special_temp = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                creator_special = re.search(r"\D*", creator_special_temp).group()
                 department_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
                 department_special = "".join([i.get_text().strip() for i in department_temp_special])
                 name_daili_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
