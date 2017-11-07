@@ -173,10 +173,10 @@ class FrameZhuanli(wx.Frame):
         enddate = self.text_enddate.GetValue().strip()
         if len(enddate) == 0:
             enddate = int(time.strftime('%Y%m%d', time.localtime(time.time()))) + 1
-        #startdate_filter = startdate[0:4] + "%2F" + startdate[4:6] + "%2F" + startdate[6:8]
-        #enddate_filter = enddate[0:4] + "%2F" + enddate[4:6] + "%2F" + enddate[6:8]
+        startdate_filter = startdate[0:4] + "%2F" + startdate[4:6] + "%2F" + startdate[6:8]
+        enddate_filter = enddate[0:4] + "%2F" + enddate[4:6] + "%2F" + enddate[6:8]
 
-        # 排除在外的状态
+        # 排除在外的状态需要特殊考虑，有可能出现显示这些特殊状态，但是实际是受理的！
         list_except = ["驳回".decode('gbk'), '退回发起人'.decode('gbk'), '撤销'.decode('gbk')]
         # 模拟登陆
         url_login = "http://10.110.6.34/users/login"
@@ -201,7 +201,8 @@ class FrameZhuanli(wx.Frame):
         # 获取数据
         # 先使用limit=1来登录获取最大值。
         url_data = "http://10.110.6.34/audit/bpm/complete"
-        payload_1 = "limit=1&sortDirect=DESC&sortField=created_at"
+        #payload_1 = "limit=1&sortDirect=DESC&sortField=created_at"
+        payload_1 = "filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=1&sortDirect=DESC&sortField=created_at".format(start_date=startdate_filter, end_date=enddate_filter)
         headers_data = {
             'host': "10.110.6.34",
             'connection': "keep-alive",
@@ -222,7 +223,7 @@ class FrameZhuanli(wx.Frame):
         max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
         #无法直接使用最大值获取，分页获取然后合并
         total_page = int(max_number) / 20 + 2
-        print total_page
+        # print total_page
         # 分页来获取信息
         list_status_temp = []
         list_date_created_temp = []
@@ -230,10 +231,12 @@ class FrameZhuanli(wx.Frame):
         list_current_node_temp = []
         list_sn_filename_temp = []
         list_num_temp = []
+        self.updatedisplay("开始抓取第一部分，分页总数据！".decode('gbk'))
         for page_number in range(1, total_page):
-            print page_number
-            payload_data = "limit=20&page={page}&sortDirect=DESC&sortField=created_at".format(page=page_number)
-            #payload_data = "limit={max_number}&sortDirect=DESC&sortField=created_at".format(max_number=max_number)
+            # print page_number
+            self.updatedisplay("已抓取%s/%s页！".decode('gbk') % (page_number, total_page-1))
+            #payload_data = "limit=20&page={page}&sortDirect=DESC&sortField=created_at".format(page=page_number)
+            payload_data = "page={page}filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=20&sortDirect=DESC&sortField=created_at".format(page=page_number, start_date=startdate_filter, end_date=enddate_filter)
             response_data = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
             data_original = response_data.content
             #print data_original
@@ -241,14 +244,14 @@ class FrameZhuanli(wx.Frame):
             list_status_temp_1 = re.findall(r'"status":"<span class=my_task_status_\w*?>(.*?)<\\/span>', data_original)
             list_status_temp_2 = [item.decode('unicode_escape') for item in list_status_temp_1]
             #print list_status_temp_2
-            # 获取创建时间
+            # 获取提交时间
             list_date_created_temp_1 = re.findall(r'"created_at":"(\d+\\/\d+\\/\d+)', data_original)
             list_date_created_temp_2 = [item.replace("\\/", "-") for item in list_date_created_temp_1]
             #print list_date_created_temp_2
             #获取创建人
-            list_creator_temp_1 = re.findall(r',"created_by":"([^<].*?)",', data_original)
-            list_creator_temp_3 = [item.decode('unicode_escape') for item in list_creator_temp_1]
-            list_creator_temp_2 = [re.search(r"\D*", item).group() for item in list_creator_temp_3]
+            # list_creator_temp_1 = re.findall(r',"created_by":"([^<].*?)",', data_original)
+            # list_creator_temp_3 = [item.decode('unicode_escape') for item in list_creator_temp_1]
+            # list_creator_temp_2 = [re.search(r"\D*", item).group() for item in list_creator_temp_3]
             #print list_creator_temp_1
             #获取当前处理节点
             list_current_node_temp_1 = re.findall(r'"node_name":"<span class=\\"node-icon\\" data-bind=\w*? title=.*?><\\/span>(.*?)",', data_original)
@@ -263,43 +266,68 @@ class FrameZhuanli(wx.Frame):
                 list_sn_filename_temp_1.append(item[1].decode('unicode_escape'))
 
             list_status_temp.extend(list_status_temp_2)
-            list_creator_temp.extend(list_creator_temp_2)
+            # list_creator_temp.extend(list_creator_temp_2)
             list_date_created_temp.extend(list_date_created_temp_2)
             list_current_node_temp.extend(list_current_node_temp_2)
             list_num_temp.extend(list_num_temp_1)
             list_sn_filename_temp.extend(list_sn_filename_temp_1)
 
-        # 先处理一遍数据，把状态在剔除列表的、名字被删除只剩下\/的、SN重复的去除、撰写人为徐莉（浪潮信息）和王文晓的去掉
+        # 先处理一遍数据，把名字被删除只剩下\/的、SN重复的去除、撰写人为徐莉（浪潮信息）和王文晓的去掉
+        #最后呈现的列表
         list_status = []
-        list_creator = []
+        # list_creator = []
         list_date_created = []
         list_current_node = []
         list_sn_filename = []
         list_num = []
         list_sn = []
         list_filename = []
+
+        #特殊状态的列表
+        list_status_special = []
+        # list_creator = []
+        list_date_created_special = []
+        list_current_node_special = []
+        list_sn_filename_special = []
+        list_num_special = []
+        list_sn_special = []
+        list_filename_special = []
+        #排除撰写人为专利工程师的
         list_creator_except = ["徐莉（浪潮信息）".decode('gbk'), "王文晓".decode('gbk')]
+        #用于排除被驳回之后到开始节点的
+        list_except_current_node = ["开始节点".decode('gbk')]
+
+        #先获取非特殊列表里面的，然后再获取在特殊列表里面的，如果在特殊列表中的SN但是不在非特殊列表的结果中，那就需要增加进去。
+        #获取非特殊列表中的
         for index_status, item_status in enumerate(list_status_temp):
-            if item_status not in list_except and list_sn_filename_temp[index_status] != '\/' and list_creator_temp[index_status] not in list_creator_except:
+            if item_status not in list_except and list_sn_filename_temp[index_status] != '\/':
                 if list_sn_filename_temp[index_status].split("\\/")[0] not in list_sn:
                     list_sn.append(list_sn_filename_temp[index_status].split("\\/")[0])
                     list_filename.append(list_sn_filename_temp[index_status].split("\\/")[1])
                     list_status.append(item_status)
-                    list_creator.append(list_creator_temp[index_status])
+                    # list_creator.append(list_creator_temp[index_status])
                     list_date_created.append(list_date_created_temp[index_status])
                     list_current_node.append(list_current_node_temp[index_status])
                     list_sn_filename.append(list_sn_filename_temp[index_status])
                     list_num.append(list_num_temp[index_status])
+        #获取特殊列表中的
+        for index_status, item_status in enumerate(list_status_temp):
+            if item_status in list_except and list_sn_filename_temp[index_status] != '\/' and list_current_node_temp[index_status] not in list_except_current_node:
+                if list_sn_filename_temp[index_status].split("\\/")[0] not in list_sn:
+                    list_sn_special.append(list_sn_filename_temp[index_status].split("\\/")[0])
+                    list_filename_special.append(list_sn_filename_temp[index_status].split("\\/")[1])
+                    list_status_special.append(item_status)
+                    # list_creator.append(list_creator_temp[index_status])
+                    list_date_created_special.append(list_date_created_temp[index_status])
+                    list_current_node_special.append(list_current_node_temp[index_status])
+                    list_sn_filename_special.append(list_sn_filename_temp[index_status])
+                    list_num_special.append(list_num_temp[index_status])
         #获取链接
         list_link = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num ]
+        list_link_special = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num_special ]
         #list_sn = [item.split("\\/")[0] for item in list_sn_filename]
         #list_filename = [item.split("\\/")[1] for item in list_sn_filename]
-        print "sn length " + str(len(list_sn))
-        print "status length " + str(len(list_status))
-        print "current node length " + str(len(list_current_node))
-        print "creator length " + str(len(list_creator))
-        print "date created " + str(len(list_date_created))
-        print  "filename lenngth " + str(len(list_filename))
+
         headers_link = {
             'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
             'accept-encoding': "gzip, deflate",
@@ -312,13 +340,24 @@ class FrameZhuanli(wx.Frame):
             'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
         }
 
+        #最后呈现的列表
         list_data_daili = []
         list_username_lastupdate = []
         list_type_invention = []
         list_date_lastupdate = []
         list_status_second = []
         list_department = []
+        list_creator = []
+        #特殊状态的列表
+        list_data_daili_special = []
+        list_username_lastupdate_special = []
+        list_type_invention_special = []
+        list_date_lastupdate_special = []
+        list_status_second_special = []
+        list_department_special = []
+        list_creator_special = []
 
+        self.updatedisplay("开始抓取第二部分！每个专利的信息！".decode('gbk'))
         a = int(len(list_status) / 10)
 
         for index, item in enumerate(list_link):
@@ -333,6 +372,7 @@ class FrameZhuanli(wx.Frame):
                 # print data_soup_tobe_filter
                 status_second = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
                 type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
+                creator = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
                 department_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
                 department = "".join([i.get_text().strip() for i in department_temp])
                 name_daili = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
@@ -350,6 +390,39 @@ class FrameZhuanli(wx.Frame):
                 list_date_lastupdate.append(date_last_update)
                 list_status_second.append(status_second)
                 list_department.append(department)
+                list_creator.append(creator)
+        #状态为特殊情况的单独统计
+        for index_special, item_special in enumerate(list_link_special):
+            # if index % a == 0:
+            #     b = int(index / a) * 10
+            #     self.updatedisplay(b)
+            print item_special
+            data_temp_temp_special = get_data.get(item_special, headers=headers_link, verify=False)
+            if data_temp_temp_special.status_code != 404:
+                data_temp_special = data_temp_temp_special.text
+                data_soup_tobe_filter_special = BeautifulSoup(data_temp_special, "html.parser")
+                # print data_soup_tobe_filter
+                status_second_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
+                type_invention_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
+                creator_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                department_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
+                department_special = "".join([i.get_text().strip() for i in department_temp_special])
+                name_daili_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[0]
+                username_last_update_special = re.search(r"\D*", username_last_update_temp_special).group()
+                date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[1]
+                date_last_update_special = date_last_update_temp_special.replace("/", "-")
+
+                if len(name_daili_special) != 0:
+                    list_data_daili_special.append(name_daili_special[0].get_text().strip())
+                else:
+                    list_data_daili_special.append("None")
+                list_type_invention_special.append(type_invention_special)
+                list_username_lastupdate_special.append(username_last_update_special)
+                list_date_lastupdate_special.append(date_last_update_special)
+                list_status_second_special.append(status_second_special)
+                list_department_special.append(department_special)
+                list_creator_special.append(creator_special)
 
         list_status_write = []
         list_sn_write = []
@@ -366,6 +439,9 @@ class FrameZhuanli(wx.Frame):
         list_status_second_except = ["撰写驳回".decode('gbk'),"待决定".decode('gbk')]
         for index_filter, item_filter in enumerate(list_status_second):
             if item_filter not in list_status_second_except:
+                #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
+                if item_filter == "撰写中".decode('gbk') and list_data_daili[index_filter] == "None":
+                    continue
                 list_status_write.append(item_filter)
                 list_sn_write.append(list_sn[index_filter])
                 list_filename_write.append(list_filename[index_filter])
@@ -377,6 +453,25 @@ class FrameZhuanli(wx.Frame):
                 list_date_lastupdate_write.append(list_date_lastupdate[index_filter])
                 list_current_node_write.append(list_current_node[index_filter])
                 list_name_daili_write.append(list_data_daili[index_filter])
+        #处理状态特殊情况专利
+        for index_filter_special, item_filter_special in enumerate(list_status_second_special):
+            if item_filter_special not in list_status_second_except:
+                #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
+                if item_filter_special == "撰写中".decode('gbk') and list_data_daili_special[index_filter_special] == "None":
+                    continue
+                if  item_filter_special == "提案中".decode('gbk'):
+                    continue
+                list_status_write.append(item_filter_special)
+                list_sn_write.append(list_sn_special[index_filter_special])
+                list_filename_write.append(list_filename_special[index_filter_special])
+                list_department_write.append(list_department_special[index_filter_special])
+                list_type_write.append(list_type_invention_special[index_filter_special])
+                list_creator_write.append(list_creator_special[index_filter_special])
+                list_date_created_write.append(list_date_created_special[index_filter_special])
+                list_username_lastupdate_write.append(list_username_lastupdate_special[index_filter_special])
+                list_date_lastupdate_write.append(list_date_lastupdate_special[index_filter_special])
+                list_current_node_write.append(list_current_node_special[index_filter_special])
+                list_name_daili_write.append(list_data_daili_special[index_filter_special])
 
 
         print "last sn length " + str(len(list_sn_write))
