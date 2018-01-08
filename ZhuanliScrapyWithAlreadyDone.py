@@ -341,7 +341,8 @@ class FrameZhuanli(wx.Frame):
         }
 
         #最后呈现的列表
-        list_data_daili = []
+        list_data_daili_department = []
+        list_data_daili_person = []
         list_username_lastupdate = []
         list_type_invention = []
         list_date_lastupdate = []
@@ -349,7 +350,8 @@ class FrameZhuanli(wx.Frame):
         list_department = []
         list_creator = []
         #特殊状态的列表
-        list_data_daili_special = []
+        list_data_daili_department_special = []
+        list_data_daili_person_special = []
         list_username_lastupdate_special = []
         list_type_invention_special = []
         list_date_lastupdate_special = []
@@ -376,16 +378,21 @@ class FrameZhuanli(wx.Frame):
                 creator = re.search(r"\D*", creator_temp).group()
                 department_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
                 department = "".join([i.get_text().strip() for i in department_temp])
-                name_daili = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                name_daili_department = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                name_daili_person = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
                 username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[0]
                 username_last_update = re.search(r"\D*", username_last_update_temp).group()
                 date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[1]
                 date_last_update = date_last_update_temp.replace("/", "-")
 
-                if len(name_daili) != 0:
-                    list_data_daili.append(name_daili[0].get_text().strip())
+                if len(name_daili_department) != 0:
+                    list_data_daili_department.append(name_daili_department[0].get_text().strip())
                 else:
-                    list_data_daili.append("None")
+                    list_data_daili_department.append("None")
+                if len(name_daili_person) != 0:
+                    list_data_daili_person.append(name_daili_person[0].get_text().strip())
+                else:
+                    list_data_daili_person.append("None")
                 list_type_invention.append(type_invention)
                 list_username_lastupdate.append(username_last_update)
                 list_date_lastupdate.append(date_last_update)
@@ -409,16 +416,21 @@ class FrameZhuanli(wx.Frame):
                 creator_special = re.search(r"\D*", creator_special_temp).group()
                 department_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
                 department_special = "".join([i.get_text().strip() for i in department_temp_special])
-                name_daili_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                name_daili_department_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                name_daili_person_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
                 username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[0]
                 username_last_update_special = re.search(r"\D*", username_last_update_temp_special).group()
                 date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[1]
                 date_last_update_special = date_last_update_temp_special.replace("/", "-")
 
-                if len(name_daili_special) != 0:
-                    list_data_daili_special.append(name_daili_special[0].get_text().strip())
+                if len(name_daili_department_special) != 0:
+                    list_data_daili_department_special.append(name_daili_department_special[0].get_text().strip())
                 else:
-                    list_data_daili_special.append("None")
+                    list_data_daili_department_special.append("None")
+                if len(name_daili_person_special) != 0:
+                    list_data_daili_person_special.append(name_daili_person_special[0].get_text().strip())
+                else:
+                    list_data_daili_person_special.append("None")
                 list_type_invention_special.append(type_invention_special)
                 list_username_lastupdate_special.append(username_last_update_special)
                 list_date_lastupdate_special.append(date_last_update_special)
@@ -436,13 +448,14 @@ class FrameZhuanli(wx.Frame):
         list_username_lastupdate_write = []
         list_date_lastupdate_write = []
         list_current_node_write = []
-        list_name_daili_write = []
+        list_name_daili_department_write = []
+        list_name_daili_person_write = []
 
         list_status_second_except = ["撰写驳回".decode('gbk'),"待决定".decode('gbk')]
         for index_filter, item_filter in enumerate(list_status_second):
             if item_filter not in list_status_second_except:
                 #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
-                if item_filter == "撰写中".decode('gbk') and list_data_daili[index_filter] == "None":
+                if item_filter == "撰写中".decode('gbk') and list_data_daili_department[index_filter] == "None":
                     continue
                 list_status_write.append(item_filter)
                 list_sn_write.append(list_sn[index_filter])
@@ -454,12 +467,13 @@ class FrameZhuanli(wx.Frame):
                 list_username_lastupdate_write.append(list_username_lastupdate[index_filter])
                 list_date_lastupdate_write.append(list_date_lastupdate[index_filter])
                 list_current_node_write.append(list_current_node[index_filter])
-                list_name_daili_write.append(list_data_daili[index_filter])
+                list_name_daili_department_write.append(list_data_daili_department[index_filter])
+                list_name_daili_person_write.append(list_data_daili_person[index_filter])
         #处理状态特殊情况专利
         for index_filter_special, item_filter_special in enumerate(list_status_second_special):
             if item_filter_special not in list_status_second_except:
                 #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
-                if item_filter_special == "撰写中".decode('gbk') and list_data_daili_special[index_filter_special] == "None":
+                if item_filter_special == "撰写中".decode('gbk') and list_data_daili_department_special[index_filter_special] == "None":
                     continue
                 if  item_filter_special == "提案中".decode('gbk'):
                     continue
@@ -473,7 +487,8 @@ class FrameZhuanli(wx.Frame):
                 list_username_lastupdate_write.append(list_username_lastupdate_special[index_filter_special])
                 list_date_lastupdate_write.append(list_date_lastupdate_special[index_filter_special])
                 list_current_node_write.append(list_current_node_special[index_filter_special])
-                list_name_daili_write.append(list_data_daili_special[index_filter_special])
+                list_name_daili_department_write.append(list_data_daili_department_special[index_filter_special])
+                list_name_daili_person_write.append(list_data_daili_person_special[index_filter_special])
 
 
         print "last sn length " + str(len(list_sn_write))
@@ -486,9 +501,10 @@ class FrameZhuanli(wx.Frame):
         print "last date lastupdate length " + str(len(list_date_lastupdate_write))
         print "last department length " + str(len(list_department_write))
         print "last type length " + str(len(list_type_write))
-        print "last daili length " + str(len(list_name_daili_write))
+        print "last daili department length " + str(len(list_name_daili_department_write))
+        print "last daili person length " + str(len(list_name_daili_person_write))
 
-        title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'), '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理名称'.decode('gbk')]
+        title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'), '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         # department_write = "测试验证部".decode('gbk')
         workbook_display = xlsxwriter.Workbook('%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
@@ -508,8 +524,8 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('D:D', 33)
         sheet.set_column('G:I', 15)
         sheet.set_column('J:J', 17)
-        sheet.set_column('K:K', 33)
-        sheet.merge_range(0, 0, 0, 10, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
+        sheet.set_column('K:L', 33)
+        sheet.merge_range(0, 0, 0, 11, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
         for index_data, item_data in enumerate(list_status_write):
@@ -527,7 +543,8 @@ class FrameZhuanli(wx.Frame):
                 sheet.write_datetime(2 + index_data, 8, datetime.datetime.strptime(list_date_lastupdate_write[index_data], '%Y-%m-%d'),
                                      workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
                 sheet.write(2 + index_data, 9, list_current_node_write[index_data], formatone)
-                sheet.write(2 + index_data, 10, list_name_daili_write[index_data], formatone)
+                sheet.write(2 + index_data, 10, list_name_daili_department_write[index_data], formatone)
+                sheet.write(2 + index_data, 11, list_name_daili_person_write[index_data], formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))

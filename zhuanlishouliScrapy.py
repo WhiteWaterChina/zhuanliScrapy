@@ -187,6 +187,7 @@ class FrameZhuanli(wx.Frame):
         data_department_name_list = []
         data_type_invention_list = []
         data_daili_list = []
+        data_rule_list = []
 
         # 模拟登陆
         url_login = "http://10.110.6.34/users/login"
@@ -263,7 +264,6 @@ class FrameZhuanli(wx.Frame):
         data_shenqing_date_temp = re.findall(r'"PreliminaryBase.filed_date":"(\d+\\/\d+\\/\d+)"', data_original)
         data_shenqing_date_list = [i.replace("\\/", "-") for i in data_shenqing_date_temp]
 
-
         headers_link = {
             'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
             'accept-encoding': "gzip, deflate",
@@ -276,33 +276,36 @@ class FrameZhuanli(wx.Frame):
             'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
         }
 
-
+        # patentDetail > table > tbody > tr:nth-child(26) > td > div > div > a
         a = int(len(data_management_sn_list) / 10)
 
         for index, item in enumerate(data_link_list):
             if index % a == 0:
                 b = int(index / a) * 10
                 self.updatedisplay(b)
+            print item
             data_temp = get_data.get(item, headers=headers_link, verify=False).text
             data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
-            name_daili = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(26) > td > div > div > a")[0].get_text().strip()
+            try:
+                name_daili = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(26) > td > div > div > a")[0].get_text().strip()
+            except IndexError:
+                name_daili = "None"
             filename_original = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(5) > td > div > div")[0].get_text().strip()
+            data_rule = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(11) > td:nth-of-type(1) > div > div")[0].get_text().strip()
             name_creator_temp = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(30) > td > div > div")[0].get_text().strip()
             name_creator = re.search(r"\D*", name_creator_temp).group()
             department_temp = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(31) > td > div > div > a")
             department = "".join([i.get_text().strip() for i in department_temp])
-            # sn_temp = data_soup_tobe_filter.select("#inventions > div > span:nth-of-type(1) > table > tbody > tr > td:nth-of-type(1) > a")[0].get_text().strip()
             data_creator_list.append(name_creator)
             data_daili_list.append(name_daili)
             data_department_name_list.append(department)
             data_filename_original_list.append(filename_original)
-            # data_sn_list.append(sn_temp)
+            data_rule_list.append(data_rule)
 
-
-        title_sheet = ['管理编号'.decode('gbk'), '专利类型'.decode('gbk'), '原专利名称'.decode('gbk'), '代理提交专利名称'.decode('gbk'), '发明人'.decode('gbk'), '申请号'.decode('gbk'), '申请日期'.decode('gbk'), '代理'.decode('gbk'), '部门'.decode('gbk')]
+        title_sheet = ['管理编号'.decode('gbk'), '专利类型'.decode('gbk'),'专利规则组'.decode('gbk'), '原专利名称'.decode('gbk'), '代理提交专利名称'.decode('gbk'), '发明人'.decode('gbk'), '申请号'.decode('gbk'), '申请日期'.decode('gbk'), '代理'.decode('gbk'), '部门'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
-        workbook_display = xlsxwriter.Workbook('%s专利受理总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
-        sheet = workbook_display.add_worksheet('2017财年%s受理专利统计'.decode('gbk') % department_write)
+        workbook_display = xlsxwriter.Workbook('%s专利申请专利状态总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
+        sheet = workbook_display.add_worksheet('2017财年%s申请专利状态专利统计'.decode('gbk') % department_write)
         formatone = workbook_display.add_format()
         formatone.set_border(1)
         formattwo = workbook_display.add_format()
@@ -313,28 +316,29 @@ class FrameZhuanli(wx.Frame):
         formattitle.set_bg_color("yellow")
         formattitle.set_bold(True)
         sheet.set_column('A:A', 17)
-        sheet.set_column('C:D', 42)
-        sheet.set_column('F:F', 18)
-        sheet.set_column('G:G', 13)
-        sheet.set_column('H:H', 20)
-        sheet.set_column('I:I', 42)
-        sheet.merge_range(0, 0, 0, 9, "%s2017财年受理专利总览".decode('gbk') % department_write, formattitle)
+        sheet.set_column('C:C', 17)
+        sheet.set_column('D:E', 42)
+        sheet.set_column('F:G', 18)
+        sheet.set_column('H:H', 13)
+        sheet.set_column('I:I', 20)
+        sheet.set_column('J:J', 42)
+        sheet.merge_range(0, 0, 0, 10, "%s2017财年受理专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
         for index_data, item_data in enumerate(data_management_sn_list):
             sheet.write(2 + index_data, 0, item_data, formatone)
             sheet.write(2 + index_data, 1, data_type_invention_list[index_data], formatone)
-            sheet.write(2 + index_data, 2, data_filename_original_list[index_data], formatone)
-            #sheet.write(2 + index_data, 3, data_sn_list[index_data], formatone)
-            sheet.write(2 + index_data, 3, data_filename_final_list[index_data], formatone)
-            sheet.write(2 + index_data, 4, data_creator_list[index_data], formatone)
-            sheet.write(2 + index_data, 5, data_shouli_sn_list[index_data], formatone)
-            sheet.write_datetime(2 + index_data, 6, datetime.datetime.strptime(data_shenqing_date_list[index_data],
+            sheet.write(2 + index_data, 2, data_rule_list[index_data], formatone)
+            sheet.write(2 + index_data, 3, data_filename_original_list[index_data], formatone)
+            sheet.write(2 + index_data, 4, data_filename_final_list[index_data], formatone)
+            sheet.write(2 + index_data, 5, data_creator_list[index_data], formatone)
+            sheet.write(2 + index_data, 6, data_shouli_sn_list[index_data], formatone)
+            sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_shenqing_date_list[index_data],
                                                                                '%Y-%m-%d'),
                                  workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
 
-            sheet.write(2 + index_data, 7, data_daili_list[index_data], formatone)
-            sheet.write(2 + index_data, 8, data_department_name_list[index_data], formatone)
+            sheet.write(2 + index_data, 8, data_daili_list[index_data], formatone)
+            sheet.write(2 + index_data, 9, data_department_name_list[index_data], formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
