@@ -243,26 +243,43 @@ class FrameZhuanli(wx.Frame):
         data_original = response_data.content
 
         # 获取管理编号
-        data_management_sn_list = re.findall(r'"Patent.management_sn":"(\d+)"', data_original)
+        data_management_sn_list_tmp = re.findall(r'"Patent.management_sn":"(\d+)"', data_original)
 
         # 获取专利类型、连接的数字、专利撰写后的名称
         # 获取总的数据
         data_link_temp = re.findall(r'"Patent.patent_name":"<span class=.*?>(.*?)<\\/span><a href=\\"http:\\/\\/10.110.6.34\\/patent\\/patent\\/view\\/(\d+)\\" target=\\"_blank\\">(.*?)<\\/a>"', data_original)
         #分别获取
         data_link_number_temp = []
+        data_management_sn_list = []
+        data_type_invention_list_tmp = []
+        data_filename_final_list_tmp = []
+        data_link_list = []
+        data_shouli_sn_list = []
+        data_shenqing_date_list = []
+
         for item in data_link_temp:
-            data_type_invention_list.append(item[0].decode('unicode_escape'))
+            data_type_invention_list_tmp.append(item[0].decode('unicode_escape'))
             data_link_number_temp.append(item[1])
-            data_filename_final_list.append(item[2].decode('unicode_escape'))
+            data_filename_final_list_tmp.append(item[2].decode('unicode_escape'))
         # 再将数字连接到前置地址上
-        data_link_list = ["http://10.110.6.34/patent/patent/view/" + i for i in data_link_number_temp]
+        data_link_list_tmp = ["http://10.110.6.34/patent/patent/view/" + i for i in data_link_number_temp]
 
         # 获取受理号
-        data_shouli_sn_list = re.findall(r'"PreliminaryBase.application_number":"(\w+\.*?\w*?)","PreliminaryBase.filed_date"', data_original)
+        data_shouli_sn_list_tmp = re.findall(r'"PreliminaryBase.application_number":"(\w+\.*?\w*?)","PreliminaryBase.filed_date"', data_original)
 
         #获取申请时间
         data_shenqing_date_temp = re.findall(r'"PreliminaryBase.filed_date":"(\d+\\/\d+\\/\d+)"', data_original)
-        data_shenqing_date_list = [i.replace("\\/", "-") for i in data_shenqing_date_temp]
+        data_shenqing_date_list_tmp = [i.replace("\\/", "-") for i in data_shenqing_date_temp]
+
+        #去除管理编号小于201803025808。也就是2018年4月1号之前的。
+        for index_mgmt, item_mgmt in enumerate(data_management_sn_list_tmp):
+            if int(item_mgmt) > 201803025808:
+                data_management_sn_list.append(item_mgmt)
+                data_type_invention_list.append(data_type_invention_list_tmp[index_mgmt])
+                data_link_list.append(data_link_list_tmp[index_mgmt])
+                data_shouli_sn_list.append(data_shouli_sn_list_tmp[index_mgmt])
+                data_shenqing_date_list.append(data_shenqing_date_list_tmp[index_mgmt])
+
 
         headers_link = {
             'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
