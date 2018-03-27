@@ -507,8 +507,8 @@ class FrameZhuanli(wx.Frame):
         title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'), '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         # department_write = "测试验证部".decode('gbk')
-        workbook_display = xlsxwriter.Workbook('%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
-        sheet = workbook_display.add_worksheet('2017财年%s专利总览'.decode('gbk') % department_write)
+        workbook_display = xlsxwriter.Workbook('2018财年%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
+        sheet = workbook_display.add_worksheet('2018财年%s专利总览'.decode('gbk') % department_write)
         formatone = workbook_display.add_format()
         formatone.set_border(1)
         formattwo = workbook_display.add_format()
@@ -525,7 +525,7 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('G:I', 15)
         sheet.set_column('J:J', 17)
         sheet.set_column('K:L', 33)
-        sheet.merge_range(0, 0, 0, 11, "%s2017财年专利总览".decode('gbk') % department_write, formattitle)
+        sheet.merge_range(0, 0, 0, 11, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
         for index_data, item_data in enumerate(list_status_write):
