@@ -169,12 +169,14 @@ class FrameZhuanli(wx.Frame):
         password = self.input_password.GetValue()
         startdate = self.text_startdate.GetValue().strip()
         if len(startdate) == 0:
-            startdate = "20170301"
+            startdate = "20180320"
         enddate = self.text_enddate.GetValue().strip()
         if len(enddate) == 0:
             enddate = int(time.strftime('%Y%m%d', time.localtime(time.time()))) + 1
         startdate_filter = startdate[0:4] + "%2F" + startdate[4:6] + "%2F" + startdate[6:8]
+        # print startdate_filter
         enddate_filter = enddate[0:4] + "%2F" + enddate[4:6] + "%2F" + enddate[6:8]
+        # print enddate_filter
 
         # 排除在外的状态需要特殊考虑，有可能出现显示这些特殊状态，但是实际是受理的！
         list_except = ["驳回".decode('gbk'), '退回发起人'.decode('gbk'), '撤销'.decode('gbk')]
@@ -221,6 +223,7 @@ class FrameZhuanli(wx.Frame):
         data_1 = response_1.content
         # 获取最大值
         max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
+        # print max_number
         #无法直接使用最大值获取，分页获取然后合并
         total_page = int(max_number) / 20 + 2
         # print total_page
@@ -236,7 +239,7 @@ class FrameZhuanli(wx.Frame):
             # print page_number
             self.updatedisplay("已抓取%s/%s页！".decode('gbk') % (page_number, total_page-1))
             #payload_data = "limit=20&page={page}&sortDirect=DESC&sortField=created_at".format(page=page_number)
-            payload_data = "page={page}filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=20&sortDirect=DESC&sortField=created_at".format(page=page_number, start_date=startdate_filter, end_date=enddate_filter)
+            payload_data = "page={page}&filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=20&sortDirect=DESC&sortField=created_at".format(page=page_number, start_date=startdate_filter, end_date=enddate_filter)
             response_data = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
             data_original = response_data.content
             #print data_original
