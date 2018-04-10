@@ -279,6 +279,7 @@ class FrameZhuanli(wx.Frame):
                 data_link_list.append(data_link_list_tmp[index_mgmt])
                 data_shouli_sn_list.append(data_shouli_sn_list_tmp[index_mgmt])
                 data_shenqing_date_list.append(data_shenqing_date_list_tmp[index_mgmt])
+                data_filename_final_list.append(data_filename_final_list_tmp[index_mgmt])
 
 
         headers_link = {
@@ -292,13 +293,17 @@ class FrameZhuanli(wx.Frame):
             'upgrade-insecure-requests': "1",
             'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
         }
-
+        #print len(data_management_sn_list)
         # patentDetail > table > tbody > tr:nth-child(26) > td > div > div > a
         a = int(len(data_management_sn_list) / 10)
+        if a == 0:
+            length = 1
+        else:
+            length = a
 
         for index, item in enumerate(data_link_list):
-            if index % a == 0:
-                b = int(index / a) * 10
+            if index % length == 0:
+                b = int(index / length) * 10
                 self.updatedisplay(b)
             print item
             data_temp = get_data.get(item, headers=headers_link, verify=False).text
@@ -319,10 +324,22 @@ class FrameZhuanli(wx.Frame):
             data_filename_original_list.append(filename_original)
             data_rule_list.append(data_rule)
 
+        print "last management sn length " + str(len(data_management_sn_list))
+        print "last invention type length " + str(len(data_type_invention_list))
+        print "last data rule length " + str(len(data_rule_list))
+        print "last filename original length " + str(len(data_filename_original_list))
+        print "last filaname final length " + str(len(data_filename_final_list))
+        print "last creator length " + str(len(data_creator_list))
+        print "last shouli sn length " + str(len(data_shouli_sn_list))
+        print "last shenqing date length " + str(len(data_shenqing_date_list))
+        print "last daili name length " + str(len(data_daili_list))
+        print "last department name length " + str(len(data_department_name_list))
+
+
         title_sheet = ['管理编号'.decode('gbk'), '专利类型'.decode('gbk'),'专利规则组'.decode('gbk'), '原专利名称'.decode('gbk'), '代理提交专利名称'.decode('gbk'), '发明人'.decode('gbk'), '申请号'.decode('gbk'), '申请日期'.decode('gbk'), '代理'.decode('gbk'), '部门'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
-        workbook_display = xlsxwriter.Workbook('%s专利申请专利状态总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
-        sheet = workbook_display.add_worksheet('2017财年%s申请专利状态专利统计'.decode('gbk') % department_write)
+        workbook_display = xlsxwriter.Workbook('2018财年%s专利申请专利状态总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
+        sheet = workbook_display.add_worksheet('2018财年%s申请专利状态专利统计'.decode('gbk') % department_write)
         formatone = workbook_display.add_format()
         formatone.set_border(1)
         formattwo = workbook_display.add_format()
