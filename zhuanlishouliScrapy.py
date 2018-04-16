@@ -235,7 +235,7 @@ class FrameZhuanli(wx.Frame):
         data_1 = response_1.content
         # 获取最大值
         max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
-
+        print "max_number:" + max_number
         # 使用最大值来获取信息
         payload_data = "filter%5BPreliminaryBase.filed_date%5D%5Bfrom%5D={starttime}&filter%5BPreliminaryBase.filed_date%5D%5Bto%5D={endtime}&limit={max_number}&sortDirect=DESC&sortField=PreliminaryBase.filed_date".format(
             max_number=max_number, starttime=startdate_filter, endtime=enddate_filter)
@@ -244,10 +244,10 @@ class FrameZhuanli(wx.Frame):
 
         # 获取管理编号
         data_management_sn_list_tmp = re.findall(r'"Patent.management_sn":"(\d+)"', data_original)
-
         # 获取专利类型、连接的数字、专利撰写后的名称
         # 获取总的数据
-        data_link_temp = re.findall(r'"Patent.patent_name":"<span class=.*?>(.*?)<\\/span><a href=\\"http:\\/\\/10.110.6.34\\/patent\\/patent\\/view\\/(\d+)\\" target=\\"_blank\\">(.*?)<\\/a>"', data_original)
+        data_link_temp = re.findall(r'"Patent.patent_name":"<span class=.*?>(.*?)<\\/span><a href=\\"\\/patent\\/patent\\/view\\/(\d+)\\" target=\\"_blank\\">(.*?)<\\/a>"', data_original)
+        print len(data_link_temp)
         #分别获取
         data_link_number_temp = []
         data_management_sn_list = []
@@ -270,7 +270,7 @@ class FrameZhuanli(wx.Frame):
         #获取申请时间
         data_shenqing_date_temp = re.findall(r'"PreliminaryBase.filed_date":"(\d+\\/\d+\\/\d+)"', data_original)
         data_shenqing_date_list_tmp = [i.replace("\\/", "-") for i in data_shenqing_date_temp]
-
+        print len(data_type_invention_list_tmp)
         #去除管理编号小于201803025808。也就是2018年4月1号之前的。
         for index_mgmt, item_mgmt in enumerate(data_management_sn_list_tmp):
             if int(item_mgmt) > 201803025808:
