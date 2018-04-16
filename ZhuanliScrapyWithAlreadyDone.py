@@ -261,7 +261,7 @@ class FrameZhuanli(wx.Frame):
             list_current_node_temp_2 = [item.decode('unicode_escape') for item in list_current_node_temp_1]
             #print  list_current_node_temp_2
             #获取链接和编号和文件名
-            list_data_sn_filename_temp = re.findall(r'"subject":"<a href=\\"http:\\/\\/10.110.6.34\\/invention\\/inventions\\/view\\/(\d+)\\" target=\\"_blank\\">(.*?)<\\/a>",', data_original)
+            list_data_sn_filename_temp = re.findall(r'"subject":"<a href=\\"\\/invention\\/inventions\\/view\\/(\d+)\\" target=\\"_blank\\">(.*?)<\\/a>",', data_original)
             list_num_temp_1 = []
             list_sn_filename_temp_1 = []
             for item in list_data_sn_filename_temp:
@@ -371,6 +371,7 @@ class FrameZhuanli(wx.Frame):
                 self.updatedisplay(b)
             print item
             data_temp_temp = get_data.get(item, headers=headers_link, verify=False)
+            time.sleep(1)
             if data_temp_temp.status_code != 404:
                 data_temp = data_temp_temp.text
                 data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
