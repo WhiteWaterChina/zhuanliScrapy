@@ -168,6 +168,7 @@ class FrameZhuanli(wx.Frame):
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
         startdate = self.text_startdate.GetValue().strip()
+        list_status_second_except = ["撰写驳回".decode('gbk'),"待决定".decode('gbk')]
         if len(startdate) == 0:
             startdate = "20180320"
         enddate = self.text_enddate.GetValue().strip()
@@ -371,7 +372,7 @@ class FrameZhuanli(wx.Frame):
                 self.updatedisplay(b)
             print item
             data_temp_temp = get_data.get(item, headers=headers_link, verify=False)
-            time.sleep(1)
+            # time.sleep(1)
             if data_temp_temp.status_code != 404:
                 data_temp = data_temp_temp.text
                 data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
@@ -384,9 +385,9 @@ class FrameZhuanli(wx.Frame):
                 department = "".join([i.get_text().strip() for i in department_temp])
                 name_daili_department = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
                 name_daili_person = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
-                username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[0]
+                username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[0]
                 username_last_update = re.search(r"\D*", username_last_update_temp).group()
-                date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[1]
+                date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[1]
                 date_last_update = date_last_update_temp.replace("/", "-")
 
                 if len(name_daili_department) != 0:
@@ -422,9 +423,9 @@ class FrameZhuanli(wx.Frame):
                 department_special = "".join([i.get_text().strip() for i in department_temp_special])
                 name_daili_department_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
                 name_daili_person_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
-                username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[0]
+                username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[0]
                 username_last_update_special = re.search(r"\D*", username_last_update_temp_special).group()
-                date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(21) > td")[0].get_text().strip().split( " ")[1]
+                date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[1]
                 date_last_update_special = date_last_update_temp_special.replace("/", "-")
 
                 if len(name_daili_department_special) != 0:
@@ -455,7 +456,6 @@ class FrameZhuanli(wx.Frame):
         list_name_daili_department_write = []
         list_name_daili_person_write = []
 
-        list_status_second_except = ["撰写驳回".decode('gbk'),"待决定".decode('gbk')]
         for index_filter, item_filter in enumerate(list_status_second):
             if item_filter not in list_status_second_except:
                 #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
