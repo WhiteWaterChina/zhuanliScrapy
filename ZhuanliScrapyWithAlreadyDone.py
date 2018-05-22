@@ -235,6 +235,7 @@ class FrameZhuanli(wx.Frame):
         list_current_node_temp = []
         list_sn_filename_temp = []
         list_num_temp = []
+        list_assign_temp = []
         self.updatedisplay("开始抓取第一部分，分页总数据！".decode('gbk'))
         for page_number in range(1, total_page):
             # print page_number
@@ -252,10 +253,10 @@ class FrameZhuanli(wx.Frame):
             list_date_created_temp_1 = re.findall(r'"created_at":"(\d+\\/\d+\\/\d+)', data_original)
             list_date_created_temp_2 = [item.replace("\\/", "-") for item in list_date_created_temp_1]
             #print list_date_created_temp_2
-            #获取创建人
-            # list_creator_temp_1 = re.findall(r',"created_by":"([^<].*?)",', data_original)
-            # list_creator_temp_3 = [item.decode('unicode_escape') for item in list_creator_temp_1]
-            # list_creator_temp_2 = [re.search(r"\D*", item).group() for item in list_creator_temp_3]
+            #获取当前处理人
+            list_assign_temp_1 = re.findall(r'"assignee":"(.*?)"', data_original)
+            list_assign_temp_1_temp = list_assign_temp_1[1:]
+            list_assign_temp_2 = [item.decode('unicode_escape') for item in list_assign_temp_1_temp]
             #print list_creator_temp_1
             #获取当前处理节点
             list_current_node_temp_1 = re.findall(r'"node_name":"<span class=\\"node-icon\\" data-bind=\w*? title=.*?><\\/span>(.*?)",', data_original)
@@ -275,6 +276,7 @@ class FrameZhuanli(wx.Frame):
             list_current_node_temp.extend(list_current_node_temp_2)
             list_num_temp.extend(list_num_temp_1)
             list_sn_filename_temp.extend(list_sn_filename_temp_1)
+            list_assign_temp.extend(list_assign_temp_2)
 
         # 先处理一遍数据，把名字被删除只剩下\/的、SN重复的去除、撰写人为徐莉（浪潮信息）和王文晓的去掉
         #最后呈现的列表
@@ -286,6 +288,7 @@ class FrameZhuanli(wx.Frame):
         list_num = []
         list_sn = []
         list_filename = []
+        list_assign = []
 
         #特殊状态的列表
         list_status_special = []
@@ -296,6 +299,7 @@ class FrameZhuanli(wx.Frame):
         list_num_special = []
         list_sn_special = []
         list_filename_special = []
+        list_assign_special = []
         #排除撰写人为专利工程师的
         list_creator_except = ["徐莉（浪潮信息）".decode('gbk'), "王文晓".decode('gbk')]
         #用于排除被驳回之后到开始节点的
@@ -314,6 +318,7 @@ class FrameZhuanli(wx.Frame):
                     list_current_node.append(list_current_node_temp[index_status])
                     list_sn_filename.append(list_sn_filename_temp[index_status])
                     list_num.append(list_num_temp[index_status])
+                    list_assign.append(list_assign_temp[index_status])
         #获取特殊列表中的
         for index_status, item_status in enumerate(list_status_temp):
             if item_status in list_except and list_sn_filename_temp[index_status] != '\/' and list_current_node_temp[index_status] not in list_except_current_node:
@@ -326,6 +331,7 @@ class FrameZhuanli(wx.Frame):
                     list_current_node_special.append(list_current_node_temp[index_status])
                     list_sn_filename_special.append(list_sn_filename_temp[index_status])
                     list_num_special.append(list_num_temp[index_status])
+                    list_assign_special.append(list_assign_temp[index_status])
         #获取链接
         list_link = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num ]
         list_link_special = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num_special ]
@@ -455,6 +461,7 @@ class FrameZhuanli(wx.Frame):
         list_current_node_write = []
         list_name_daili_department_write = []
         list_name_daili_person_write = []
+        list_assign_write = []
 
         for index_filter, item_filter in enumerate(list_status_second):
             if item_filter not in list_status_second_except:
@@ -473,6 +480,7 @@ class FrameZhuanli(wx.Frame):
                 list_current_node_write.append(list_current_node[index_filter])
                 list_name_daili_department_write.append(list_data_daili_department[index_filter])
                 list_name_daili_person_write.append(list_data_daili_person[index_filter])
+                list_assign_write.append(list_assign[index_filter])
         #处理状态特殊情况专利
         for index_filter_special, item_filter_special in enumerate(list_status_second_special):
             if item_filter_special not in list_status_second_except:
@@ -493,6 +501,8 @@ class FrameZhuanli(wx.Frame):
                 list_current_node_write.append(list_current_node_special[index_filter_special])
                 list_name_daili_department_write.append(list_data_daili_department_special[index_filter_special])
                 list_name_daili_person_write.append(list_data_daili_person_special[index_filter_special])
+                list_assign_write.append(list_assign[index_filter_special])
+
 
 
         print "last sn length " + str(len(list_sn_write))
@@ -507,8 +517,10 @@ class FrameZhuanli(wx.Frame):
         print "last type length " + str(len(list_type_write))
         print "last daili department length " + str(len(list_name_daili_department_write))
         print "last daili person length " + str(len(list_name_daili_person_write))
+        print "last assign length " + str(len(list_assign_write))
 
-        title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'), '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk')]
+
+        title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'), '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk'), '当前处理人'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         # department_write = "测试验证部".decode('gbk')
         workbook_display = xlsxwriter.Workbook('2018财年%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
@@ -529,6 +541,8 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('G:I', 15)
         sheet.set_column('J:J', 17)
         sheet.set_column('K:L', 33)
+        sheet.set_column('M:M', 20)
+
         sheet.merge_range(0, 0, 0, 11, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
@@ -549,6 +563,12 @@ class FrameZhuanli(wx.Frame):
                 sheet.write(2 + index_data, 9, list_current_node_write[index_data], formatone)
                 sheet.write(2 + index_data, 10, list_name_daili_department_write[index_data], formatone)
                 sheet.write(2 + index_data, 11, list_name_daili_person_write[index_data], formatone)
+                if len(list_assign_write[index_data]) == 0:
+                    sheet.write(2 + index_data, 12, None, formatone)
+                else:
+                    sheet.write(2 + index_data, 12, list_assign_write[index_data], formatone)
+
+
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))
