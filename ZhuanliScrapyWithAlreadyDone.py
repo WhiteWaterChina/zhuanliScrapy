@@ -279,9 +279,8 @@ class FrameZhuanli(wx.Frame):
             list_assign_temp.extend(list_assign_temp_2)
 
         # 先处理一遍数据，把名字被删除只剩下\/的、SN重复的去除、撰写人为徐莉（浪潮信息）和王文晓的去掉
-        #最后呈现的列表
+
         list_status = []
-        # list_creator = []
         list_date_created = []
         list_current_node = []
         list_sn_filename = []
@@ -292,7 +291,6 @@ class FrameZhuanli(wx.Frame):
 
         #特殊状态的列表
         list_status_special = []
-        # list_creator = []
         list_date_created_special = []
         list_current_node_special = []
         list_sn_filename_special = []
@@ -350,7 +348,7 @@ class FrameZhuanli(wx.Frame):
             'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
         }
 
-        #最后呈现的列表
+        #在抓取每个专利信息过程中排除撰写通过和待决定的，同时处理原来的整页信息
         list_data_daili_department = []
         list_data_daili_person = []
         list_username_lastupdate = []
@@ -359,7 +357,15 @@ class FrameZhuanli(wx.Frame):
         list_status_second = []
         list_department = []
         list_creator = []
-        #特殊状态的列表
+
+        list_status_two = []
+        list_date_created_two = []
+        list_current_node_two = []
+        list_sn_two = []
+        list_filename_two = []
+        list_assign_two = []
+
+        #特殊状态的列表处理
         list_data_daili_department_special = []
         list_data_daili_person_special = []
         list_username_lastupdate_special = []
@@ -368,6 +374,12 @@ class FrameZhuanli(wx.Frame):
         list_status_second_special = []
         list_department_special = []
         list_creator_special = []
+
+        list_date_created_special_two = []
+        list_current_node_special_two = []
+        list_sn_special_two = []
+        list_filename_special_two = []
+        list_assign_special_two = []
 
         self.updatedisplay("开始抓取第二部分！每个专利的信息！".decode('gbk'))
         a = int(len(list_status) / 10)
@@ -384,32 +396,48 @@ class FrameZhuanli(wx.Frame):
                 data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
                 # print data_soup_tobe_filter
                 status_second = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
-                type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
-                creator_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
-                creator = re.search(r"\D*", creator_temp).group()
-                department_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
-                department = "".join([i.get_text().strip() for i in department_temp])
-                name_daili_department = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
-                name_daili_person = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
-                username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[0]
-                username_last_update = re.search(r"\D*", username_last_update_temp).group()
-                date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[1]
-                date_last_update = date_last_update_temp.replace("/", "-")
+                if status_second not in list_status_second_except:
+                    #专利类型
+                    type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
+                    #撰写人
+                    creator_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                    creator = re.search(r"\D*", creator_temp).group()
+                    #部门
+                    department_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
+                    department = "".join([i.get_text().strip() for i in department_temp])
+                    #代理机构
+                    name_daili_department = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                    #代理人
+                    name_daili_person = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
+                    #最后更新人
+                    username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[0]
+                    username_last_update = re.search(r"\D*", username_last_update_temp).group()
+                    #最后更新时间
+                    date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[1]
+                    date_last_update = date_last_update_temp.replace("/", "-")
 
-                if len(name_daili_department) != 0:
-                    list_data_daili_department.append(name_daili_department[0].get_text().strip())
-                else:
-                    list_data_daili_department.append("None")
-                if len(name_daili_person) != 0:
-                    list_data_daili_person.append(name_daili_person[0].get_text().strip())
-                else:
-                    list_data_daili_person.append("None")
-                list_type_invention.append(type_invention)
-                list_username_lastupdate.append(username_last_update)
-                list_date_lastupdate.append(date_last_update)
-                list_status_second.append(status_second)
-                list_department.append(department)
-                list_creator.append(creator)
+                    if len(name_daili_department) != 0:
+                        list_data_daili_department.append(name_daili_department[0].get_text().strip())
+                    else:
+                        list_data_daili_department.append("None")
+                    if len(name_daili_person) != 0:
+                        list_data_daili_person.append(name_daili_person[0].get_text().strip())
+                    else:
+                        list_data_daili_person.append("None")
+
+                    list_status_two.append(list_status[index])
+                    list_date_created_two.append(list_date_created[index])
+                    list_current_node_two.append(list_current_node[index])
+                    list_sn_two.append(list_sn[index])
+                    list_filename_two.append(list_filename[index])
+                    list_assign_two.append(list_assign[index])
+
+                    list_type_invention.append(type_invention)
+                    list_username_lastupdate.append(username_last_update)
+                    list_date_lastupdate.append(date_last_update)
+                    list_status_second.append(status_second)
+                    list_department.append(department)
+                    list_creator.append(creator)
         #状态为特殊情况的单独统计
         for index_special, item_special in enumerate(list_link_special):
             # if index % a == 0:
@@ -422,34 +450,42 @@ class FrameZhuanli(wx.Frame):
                 data_soup_tobe_filter_special = BeautifulSoup(data_temp_special, "html.parser")
                 # print data_soup_tobe_filter
                 status_second_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
-                type_invention_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
-                creator_special_temp = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
-                creator_special = re.search(r"\D*", creator_special_temp).group()
-                department_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
-                department_special = "".join([i.get_text().strip() for i in department_temp_special])
-                name_daili_department_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
-                name_daili_person_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
-                username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[0]
-                username_last_update_special = re.search(r"\D*", username_last_update_temp_special).group()
-                date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split( " ")[1]
-                date_last_update_special = date_last_update_temp_special.replace("/", "-")
+                if status_second_special not in list_status_second_except:
+                    type_invention_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
+                    creator_special_temp = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
+                    creator_special = re.search(r"\D*", creator_special_temp).group()
+                    department_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
+                    department_special = "".join([i.get_text().strip() for i in department_temp_special])
+                    name_daili_department_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
+                    name_daili_person_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
+                    username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[0]
+                    username_last_update_special = re.search(r"\D*", username_last_update_temp_special).group()
+                    date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[1]
+                    date_last_update_special = date_last_update_temp_special.replace("/", "-")
 
-                if len(name_daili_department_special) != 0:
-                    list_data_daili_department_special.append(name_daili_department_special[0].get_text().strip())
-                else:
-                    list_data_daili_department_special.append("None")
-                if len(name_daili_person_special) != 0:
-                    list_data_daili_person_special.append(name_daili_person_special[0].get_text().strip())
-                else:
-                    list_data_daili_person_special.append("None")
-                list_type_invention_special.append(type_invention_special)
-                list_username_lastupdate_special.append(username_last_update_special)
-                list_date_lastupdate_special.append(date_last_update_special)
-                list_status_second_special.append(status_second_special)
-                list_department_special.append(department_special)
-                list_creator_special.append(creator_special)
+                    if len(name_daili_department_special) != 0:
+                        list_data_daili_department_special.append(name_daili_department_special[0].get_text().strip())
+                    else:
+                        list_data_daili_department_special.append("None")
+                    if len(name_daili_person_special) != 0:
+                        list_data_daili_person_special.append(name_daili_person_special[0].get_text().strip())
+                    else:
+                        list_data_daili_person_special.append("None")
 
-        list_status_write = []
+                    list_date_created_special_two.append(list_date_created_special[index_special])
+                    list_current_node_special_two.append(list_current_node_special[index_special])
+                    list_sn_special_two.append(list_sn_special[index_special])
+                    list_filename_special_two.append(list_filename_special[index_special])
+                    list_assign_special_two.append(list_assign_special[index_special])
+
+                    list_type_invention_special.append(type_invention_special)
+                    list_username_lastupdate_special.append(username_last_update_special)
+                    list_date_lastupdate_special.append(date_last_update_special)
+                    list_status_second_special.append(status_second_special)
+                    list_department_special.append(department_special)
+                    list_creator_special.append(creator_special)
+
+        list_status_second_write = []
         list_sn_write = []
         list_filename_write = []
         list_department_write = []
@@ -468,19 +504,19 @@ class FrameZhuanli(wx.Frame):
                 #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
                 if item_filter == "撰写中".decode('gbk') and list_data_daili_department[index_filter] == "None":
                     continue
-                list_status_write.append(item_filter)
-                list_sn_write.append(list_sn[index_filter])
-                list_filename_write.append(list_filename[index_filter])
+                list_status_second_write.append(item_filter)
+                list_sn_write.append(list_sn_two[index_filter])
+                list_filename_write.append(list_filename_two[index_filter])
                 list_department_write.append(list_department[index_filter])
                 list_type_write.append(list_type_invention[index_filter])
                 list_creator_write.append(list_creator[index_filter])
-                list_date_created_write.append(list_date_created[index_filter])
+                list_date_created_write.append(list_date_created_two[index_filter])
                 list_username_lastupdate_write.append(list_username_lastupdate[index_filter])
                 list_date_lastupdate_write.append(list_date_lastupdate[index_filter])
-                list_current_node_write.append(list_current_node[index_filter])
+                list_current_node_write.append(list_current_node_two[index_filter])
                 list_name_daili_department_write.append(list_data_daili_department[index_filter])
                 list_name_daili_person_write.append(list_data_daili_person[index_filter])
-                list_assign_write.append(list_assign[index_filter])
+                list_assign_write.append(list_assign_two[index_filter])
         #处理状态特殊情况专利
         for index_filter_special, item_filter_special in enumerate(list_status_second_special):
             if item_filter_special not in list_status_second_except:
@@ -489,24 +525,24 @@ class FrameZhuanli(wx.Frame):
                     continue
                 if  item_filter_special == "提案中".decode('gbk'):
                     continue
-                list_status_write.append(item_filter_special)
-                list_sn_write.append(list_sn_special[index_filter_special])
-                list_filename_write.append(list_filename_special[index_filter_special])
+                list_status_second_write.append(item_filter_special)
+                list_sn_write.append(list_sn_special_two[index_filter_special])
+                list_filename_write.append(list_filename_special_two[index_filter_special])
                 list_department_write.append(list_department_special[index_filter_special])
                 list_type_write.append(list_type_invention_special[index_filter_special])
                 list_creator_write.append(list_creator_special[index_filter_special])
-                list_date_created_write.append(list_date_created_special[index_filter_special])
+                list_date_created_write.append(list_date_created_special_two[index_filter_special])
                 list_username_lastupdate_write.append(list_username_lastupdate_special[index_filter_special])
                 list_date_lastupdate_write.append(list_date_lastupdate_special[index_filter_special])
-                list_current_node_write.append(list_current_node_special[index_filter_special])
+                list_current_node_write.append(list_current_node_special_two[index_filter_special])
                 list_name_daili_department_write.append(list_data_daili_department_special[index_filter_special])
                 list_name_daili_person_write.append(list_data_daili_person_special[index_filter_special])
-                list_assign_write.append(list_assign[index_filter_special])
+                list_assign_write.append(list_assign_two[index_filter_special])
 
 
 
         print "last sn length " + str(len(list_sn_write))
-        print "last status length " + str(len(list_status_write))
+        print "last status length " + str(len(list_status_second_write))
         print "last current node length " + str(len(list_current_node_write))
         print "last creator length " + str(len(list_creator_write))
         print "last date created length" + str(len(list_date_created_write))
@@ -546,7 +582,7 @@ class FrameZhuanli(wx.Frame):
         sheet.merge_range(0, 0, 0, 12, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
-        for index_data, item_data in enumerate(list_status_write):
+        for index_data, item_data in enumerate(list_status_second_write):
             if item_data not in list_status_second_except:
                 sheet.write(2 + index_data, 0, item_data, formatone)
                 sheet.write(2 + index_data, 1, list_sn_write[index_data], formatone)
