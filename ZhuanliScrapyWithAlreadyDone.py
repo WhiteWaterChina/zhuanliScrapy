@@ -382,6 +382,8 @@ class FrameZhuanli(wx.Frame):
         list_assign_special_two = []
 
         self.updatedisplay("开始抓取第二部分！每个专利的信息！".decode('gbk'))
+        self.updatedisplay("开始抓取正常流程的专利的信息！".decode('gbk'))
+
         a = int(len(list_status) / 10)
 
         for index, item in enumerate(list_link):
@@ -439,6 +441,7 @@ class FrameZhuanli(wx.Frame):
                     list_department.append(department)
                     list_creator.append(creator)
         #状态为特殊情况的单独统计
+        self.updatedisplay("开始抓取异常流程专利的信息！".decode('gbk'))
         for index_special, item_special in enumerate(list_link_special):
             # if index % a == 0:
             #     b = int(index / a) * 10
