@@ -168,7 +168,7 @@ class FrameZhuanli(wx.Frame):
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
         startdate = self.text_startdate.GetValue().strip()
-        list_status_second_except = ["撰写驳回".decode('gbk'),"待决定".decode('gbk')]
+        list_status_second_except = ["撰写驳回".decode('gbk'), "待决定".decode('gbk')]
         if len(startdate) == 0:
             startdate = "20180320"
         enddate = self.text_enddate.GetValue().strip()
@@ -231,7 +231,7 @@ class FrameZhuanli(wx.Frame):
         # 分页来获取信息
         list_status_temp = []
         list_date_created_temp = []
-        list_creator_temp = []
+        # list_creator_temp = []
         list_current_node_temp = []
         list_sn_filename_temp = []
         list_num_temp = []
@@ -331,10 +331,11 @@ class FrameZhuanli(wx.Frame):
                     list_num_special.append(list_num_temp[index_status])
                     list_assign_special.append(list_assign_temp[index_status])
         #获取链接
-        list_link = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num ]
-        list_link_special = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num_special ]
-        #list_sn = [item.split("\\/")[0] for item in list_sn_filename]
-        #list_filename = [item.split("\\/")[1] for item in list_sn_filename]
+        list_link = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num]
+        list_link_special = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num_special]
+        # 申请人信息的链接
+        list_applicant_link = ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num]
+        list_applicant_link_special =  ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num_special]
 
         headers_link = {
             'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -357,6 +358,7 @@ class FrameZhuanli(wx.Frame):
         list_status_second = []
         list_department = []
         list_creator = []
+        list_applicant = []
 
         list_status_two = []
         list_date_created_two = []
@@ -374,6 +376,7 @@ class FrameZhuanli(wx.Frame):
         list_status_second_special = []
         list_department_special = []
         list_creator_special = []
+        list_applicant_special = []
 
         list_date_created_special_two = []
         list_current_node_special_two = []
@@ -426,6 +429,10 @@ class FrameZhuanli(wx.Frame):
                         list_data_daili_person.append(name_daili_person[0].get_text().strip())
                     else:
                         list_data_daili_person.append("None")
+                    # 获取申请人信息
+                    data_applicant_temp = get_data.get(list_applicant_link[index], headers=headers_link, verify=False).text
+                    applicant_info_temp = re.search(r'"assignee":"(.*?)",', data_applicant_temp).groups()[0]
+                    applicant_info = applicant_info_temp.decode('unicode_escape')
 
                     list_status_two.append(list_status[index])
                     list_date_created_two.append(list_date_created[index])
@@ -440,6 +447,7 @@ class FrameZhuanli(wx.Frame):
                     list_status_second.append(status_second)
                     list_department.append(department)
                     list_creator.append(creator)
+                    list_applicant.append(applicant_info)
         #状态为特殊情况的单独统计
         self.updatedisplay("开始抓取异常流程专利的信息！".decode('gbk'))
         for index_special, item_special in enumerate(list_link_special):
@@ -474,6 +482,10 @@ class FrameZhuanli(wx.Frame):
                         list_data_daili_person_special.append(name_daili_person_special[0].get_text().strip())
                     else:
                         list_data_daili_person_special.append("None")
+                    # 获取特殊列表的申请人信息
+                    data_applicant_temp = get_data.get(list_applicant_link_special[index_special], headers=headers_link, verify=False).text
+                    applicant_info_temp_special = re.search(r'"assignee":"(.*?)",', data_applicant_temp).groups()[0]
+                    applicant_info_special = applicant_info_temp_special.decode('unicode_escape')
 
                     list_date_created_special_two.append(list_date_created_special[index_special])
                     list_current_node_special_two.append(list_current_node_special[index_special])
@@ -487,6 +499,7 @@ class FrameZhuanli(wx.Frame):
                     list_status_second_special.append(status_second_special)
                     list_department_special.append(department_special)
                     list_creator_special.append(creator_special)
+                    list_applicant_special.append(applicant_info_special)
 
         list_status_second_write = []
         list_sn_write = []
@@ -501,6 +514,7 @@ class FrameZhuanli(wx.Frame):
         list_name_daili_department_write = []
         list_name_daili_person_write = []
         list_assign_write = []
+        list_applicant_write = []
 
         for index_filter, item_filter in enumerate(list_status_second):
             if item_filter not in list_status_second_except:
@@ -520,13 +534,14 @@ class FrameZhuanli(wx.Frame):
                 list_name_daili_department_write.append(list_data_daili_department[index_filter])
                 list_name_daili_person_write.append(list_data_daili_person[index_filter])
                 list_assign_write.append(list_assign_two[index_filter])
+                list_applicant_write.append(list_applicant[index_filter])
         #处理状态特殊情况专利
         for index_filter_special, item_filter_special in enumerate(list_status_second_special):
             if item_filter_special not in list_status_second_except:
                 #排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
                 if item_filter_special == "撰写中".decode('gbk') and list_data_daili_department_special[index_filter_special] == "None":
                     continue
-                if  item_filter_special == "提案中".decode('gbk'):
+                if item_filter_special == "提案中".decode('gbk'):
                     continue
                 list_status_second_write.append(item_filter_special)
                 list_sn_write.append(list_sn_special_two[index_filter_special])
@@ -541,25 +556,27 @@ class FrameZhuanli(wx.Frame):
                 list_name_daili_department_write.append(list_data_daili_department_special[index_filter_special])
                 list_name_daili_person_write.append(list_data_daili_person_special[index_filter_special])
                 list_assign_write.append(list_assign_two[index_filter_special])
+                list_applicant_write.append(list_applicant_special[index_filter_special])
 
+        print "sn length " + str(len(list_sn_write))
+        print "status length " + str(len(list_status_second_write))
+        print "current node length " + str(len(list_current_node_write))
+        print "creator length " + str(len(list_creator_write))
+        print "date created length" + str(len(list_date_created_write))
+        print "filename length " + str(len(list_filename_write))
+        print "username lastupdate length " + str(len(list_username_lastupdate_write))
+        print "date lastupdate length " + str(len(list_date_lastupdate_write))
+        print "department length " + str(len(list_department_write))
+        print "type length " + str(len(list_type_write))
+        print "daili department length " + str(len(list_name_daili_department_write))
+        print "daili person length " + str(len(list_name_daili_person_write))
+        print "assign length " + str(len(list_assign_write))
+        print "applicant list length " + str(len(list_applicant_write))
 
-
-        print "last sn length " + str(len(list_sn_write))
-        print "last status length " + str(len(list_status_second_write))
-        print "last current node length " + str(len(list_current_node_write))
-        print "last creator length " + str(len(list_creator_write))
-        print "last date created length" + str(len(list_date_created_write))
-        print "last filename length " + str(len(list_filename_write))
-        print "last username lastupdate length " + str(len(list_username_lastupdate_write))
-        print "last date lastupdate length " + str(len(list_date_lastupdate_write))
-        print "last department length " + str(len(list_department_write))
-        print "last type length " + str(len(list_type_write))
-        print "last daili department length " + str(len(list_name_daili_department_write))
-        print "last daili person length " + str(len(list_name_daili_person_write))
-        print "last assign length " + str(len(list_assign_write))
-
-
-        title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'), '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'), '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk'), '当前处理人'.decode('gbk')]
+        title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'),
+                       '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'),
+                       '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk'),
+                       '当前处理人'.decode('gbk'), '申请人'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         # department_write = "测试验证部".decode('gbk')
         workbook_display = xlsxwriter.Workbook('2018财年%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
@@ -581,8 +598,9 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('J:J', 17)
         sheet.set_column('K:L', 33)
         sheet.set_column('M:M', 20)
+        sheet.set_column('N:N', 25)
 
-        sheet.merge_range(0, 0, 0, 12, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
+        sheet.merge_range(0, 0, 0, 13, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
         for index_data, item_data in enumerate(list_status_second_write):
@@ -606,6 +624,7 @@ class FrameZhuanli(wx.Frame):
                     sheet.write(2 + index_data, 12, None, formatone)
                 else:
                     sheet.write(2 + index_data, 12, list_assign_write[index_data], formatone)
+                sheet.write(2 + index_data, 13, list_applicant_write[index_data], formatone)
 
 
         workbook_display.close()
@@ -632,6 +651,7 @@ class FrameZhuanli(wx.Frame):
         else:
             self.output_info.AppendText("%s".decode('gbk') % t)
         self.output_info.AppendText(os.linesep)
+
 
 if __name__ == '__main__':
     app = wx.App()
