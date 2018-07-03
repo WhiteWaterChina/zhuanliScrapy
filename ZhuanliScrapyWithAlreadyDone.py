@@ -415,10 +415,10 @@ class FrameZhuanli(wx.Frame):
                     #代理人
                     name_daili_person = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
                     #最后更新人
-                    username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[0]
+                    username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[0]
                     username_last_update = re.search(r"\D*", username_last_update_temp).group()
                     #最后更新时间
-                    date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[1]
+                    date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[1]
                     date_last_update = date_last_update_temp.replace("/", "-")
 
                     if len(name_daili_department) != 0:
@@ -469,9 +469,9 @@ class FrameZhuanli(wx.Frame):
                     department_special = "".join([i.get_text().strip() for i in department_temp_special])
                     name_daili_department_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
                     name_daili_person_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
-                    username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[0]
+                    username_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[0]
                     username_last_update_special = re.search(r"\D*", username_last_update_temp_special).group()
-                    date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(23) > td")[0].get_text().strip().split(" ")[1]
+                    date_last_update_temp_special = data_soup_tobe_filter_special.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[1]
                     date_last_update_special = date_last_update_temp_special.replace("/", "-")
 
                     if len(name_daili_department_special) != 0:
