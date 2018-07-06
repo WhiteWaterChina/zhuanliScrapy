@@ -431,8 +431,11 @@ class FrameZhuanli(wx.Frame):
                         list_data_daili_person.append("None")
                     # 获取申请人信息
                     data_applicant_temp = get_data.get(list_applicant_link[index], headers=headers_link, verify=False).text
-                    applicant_info_temp = re.search(r'"assignee":"(.*?)",', data_applicant_temp).groups()[0]
-                    applicant_info = applicant_info_temp.decode('unicode_escape')
+                    applicant_info_temp = re.search(r'"assignee":"(.*?)",', data_applicant_temp)
+                    if applicant_info_temp is not None:
+                        applicant_info = (applicant_info_temp.groups()[0]).decode('unicode_escape')
+                    else:
+                        applicant_info = "None"
 
                     list_status_two.append(list_status[index])
                     list_date_created_two.append(list_date_created[index])
@@ -483,9 +486,14 @@ class FrameZhuanli(wx.Frame):
                     else:
                         list_data_daili_person_special.append("None")
                     # 获取特殊列表的申请人信息
-                    data_applicant_temp = get_data.get(list_applicant_link_special[index_special], headers=headers_link, verify=False).text
-                    applicant_info_temp_special = re.search(r'"assignee":"(.*?)",', data_applicant_temp).groups()[0]
-                    applicant_info_special = applicant_info_temp_special.decode('unicode_escape')
+                    data_applicant_temp_special = get_data.get(list_applicant_link_special[index_special], headers=headers_link, verify=False).text
+                    applicant_info_temp_special = re.search(r'"assignee":"(.*?)",', data_applicant_temp_special)
+                    if applicant_info_temp_special is not None:
+                        applicant_info_special = (applicant_info_temp_special.groups()[0]).decode('unicode_escape')
+                    else:
+                        applicant_info_special = "None"
+                    # applicant_info_temp_special = re.search(r'"assignee":"(.*?)",', data_applicant_temp).groups()[0]
+                    # applicant_info_special = applicant_info_temp_special.decode('unicode_escape')
 
                     list_date_created_special_two.append(list_date_created_special[index_special])
                     list_current_node_special_two.append(list_current_node_special[index_special])
