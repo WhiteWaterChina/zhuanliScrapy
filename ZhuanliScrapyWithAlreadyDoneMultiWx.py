@@ -74,7 +74,7 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
                 continue
             else:
                 data_original = response_data_try.content
-                print(str(page_number) + " " + str(return_code_page))
+                print(str(page_number) + " " + str(response_data_try.status_code))
                 break
     else:
         data_original = response_data.content
