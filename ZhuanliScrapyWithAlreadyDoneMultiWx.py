@@ -71,6 +71,7 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
                 continue
             else:
                 data_original = response_data_try.content
+                print(str(page_number) + " " + str(return_code_page))
                 break
     else:
         data_original = response_data.content
@@ -746,6 +747,7 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('B:B', 14)
         sheet.set_column('C:C', 42)
         sheet.set_column('D:D', 33)
+        sheet.set_column('F:F', 11)
         sheet.set_column('G:I', 15)
         sheet.set_column('J:J', 17)
         sheet.set_column('K:L', 33)
