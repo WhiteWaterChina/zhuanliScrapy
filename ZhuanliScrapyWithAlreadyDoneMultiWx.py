@@ -14,16 +14,10 @@ import urllib2
 from multiprocessing import Pool
 
 
-def getpage(page_number, startdate_filter, enddate_filter, username, password):
-    list_status_temp = []
-    list_current_node_temp = []
-    list_num_temp= []
-    list_sn_filename_temp = []
-    list_assign_temp = []
-    list_date_created_temp = []
-    list_creator_temp = []
-
-    headers_base = {
+def login(username, password):
+    url_login = "http://10.110.6.34/users/login"
+    login_session = requests.Session()
+    headers_login = {
         'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
         'accept-encoding': "gzip, deflate",
         'accept-language': "zh-CN,zh;q=0.8",
@@ -37,6 +31,19 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
         'upgrade-insecure-requests': "1",
         'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
     }
+    payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
+    login_action = login_session.post(url_login, data=payload_login, headers=headers_login)
+    return  login_session
+
+
+def getpage(page_number, startdate_filter, enddate_filter, username, password):
+    list_status_temp = []
+    list_current_node_temp = []
+    list_num_temp= []
+    list_sn_filename_temp = []
+    list_assign_temp = []
+    list_date_created_temp = []
+    list_creator_temp = []
     headers_data = {
         'host': "10.110.6.34",
         'connection': "keep-alive",
@@ -50,22 +57,18 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
         'accept-encoding': "gzip, deflate",
         'accept-language': "zh-CN,zh;q=0.8",
     }
-    get_data_page_data = requests.Session()
     url_data = "http://10.110.6.34/audit/bpm/complete"
-    url_login = "http://10.110.6.34/users/login"
-    payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
-        username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
-    get_data_page_data.post(url_login, data=payload_login, headers=headers_base)
+
     payload_data = "page={page}&filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=20&sortDirect=DESC&sortField=created_at".format(
         page=page_number, start_date=startdate_filter, end_date=enddate_filter)
-    response_data = get_data_page_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
+    response_data = login(username, password).post(url_data, data=payload_data, headers=headers_data, verify=False)
     return_code_page = response_data.status_code
     data_original = ''
     print(str(page_number) + " " + str(return_code_page))
     if return_code_page != 200:
         print("Try to reget page info for page %s" % str(page_number))
         for i in range(1, 10):
-            response_data_try = get_data_page_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
+            response_data_try = login(username, password).post(url_data, data=payload_data, headers=headers_data, verify=False)
             print("Try %s times for page %s" % (str(i), str(page_number)))
             if response_data_try.status_code != 200:
                 continue
@@ -89,12 +92,7 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
     list_creator_temp_3 = [item.decode('unicode_escape') for item in list_creator_temp_1 if re.search(r'<', item) is None]
     # print list_creator_temp_4
     list_creator_temp_2 = list_creator_temp_3
-    # for item_temp in list_creator_temp_3:
-    #     temp_data = re.search(r'\D*', item_temp).groups()[0]
-    #     # if temp_data != "\u53d1\u8d77\u4eba":
-    #     print temp_data
-    #     list_creator_temp_3.append(temp_data)
-    # print list_creator_temp_2
+
 
     # 获取当前处理人
     list_assign_temp_1 = re.findall(r'"assignee":"(.*?)"', data_original)
@@ -140,27 +138,8 @@ def getdetail(link, applicant_link, username, password):
         'upgrade-insecure-requests': "1",
         'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
     }
-    headers_base = {
-        'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        'accept-encoding': "gzip, deflate",
-        'accept-language': "zh-CN,zh;q=0.8",
-        'cache-control': "no-cache",
-        'connection': "keep-alive",
-        'content-length': "147",
-        'content-type': "application/x-www-form-urlencoded",
-        'host': "10.110.6.34",
-        'origin': "http://10.110.6.34",
-        'referer': "http://10.110.6.34/users/login",
-        'upgrade-insecure-requests': "1",
-        'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-    }
-    url_login = "http://10.110.6.34/users/login"
-    get_data_detail = requests.Session()
-    payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
-        username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
-    get_data_detail.post(url_login, data=payload_login, headers=headers_base)
     print link
-    data_detail_temp = get_data_detail.get(link, headers=headers_link, verify=False)
+    data_detail_temp = login(username, password).get(link, headers=headers_link, verify=False)
     if data_detail_temp.status_code != 404:
         data_temp = data_detail_temp.text
         data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
@@ -199,7 +178,7 @@ def getdetail(link, applicant_link, username, password):
             else:
                 data_daili_person = "None"
             # 获取申请人信息
-            data_applicant_temp = get_data_detail.get(applicant_link, headers=headers_link, verify=False).text
+            data_applicant_temp = login(username, password).get(applicant_link, headers=headers_link, verify=False).text
             print applicant_link
             applicant_info_temp = re.search(r'"assignee":"(.*?)",', data_applicant_temp)
             if applicant_info_temp is not None:
@@ -379,6 +358,7 @@ class FrameZhuanli(wx.Frame):
             self.output_info.AppendText("%s".decode('gbk') % t)
         self.output_info.AppendText(os.linesep)
 
+
     def run(self):
         self.updatedisplay("开始抓取".decode('gbk'))
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
@@ -399,29 +379,28 @@ class FrameZhuanli(wx.Frame):
         # 排除在外的状态需要特殊考虑，有可能出现显示这些特殊状态，但是实际是受理的！
         list_except = ["驳回".decode('gbk'), '退回发起人'.decode('gbk'), '撤销'.decode('gbk')]
         # 模拟登陆
-        url_login = "http://10.110.6.34/users/login"
-        payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
-            username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
-        headers_base = {
-            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-            'accept-encoding': "gzip, deflate",
-            'accept-language': "zh-CN,zh;q=0.8",
-            'cache-control': "no-cache",
-            'connection': "keep-alive",
-            'content-length': "147",
-            'content-type': "application/x-www-form-urlencoded",
-            'host': "10.110.6.34",
-            'origin': "http://10.110.6.34",
-            'referer': "http://10.110.6.34/users/login",
-            'upgrade-insecure-requests': "1",
-            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-        }
-        get_data = requests.session()
-        get_data.post(url_login, data=payload_login, headers=headers_base)
+        # url_login = "http://10.110.6.34/users/login"
+        # payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
+        #     username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
+        # headers_base = {
+        #     'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+        #     'accept-encoding': "gzip, deflate",
+        #     'accept-language': "zh-CN,zh;q=0.8",
+        #     'cache-control': "no-cache",
+        #     'connection': "keep-alive",
+        #     'content-length': "147",
+        #     'content-type': "application/x-www-form-urlencoded",
+        #     'host': "10.110.6.34",
+        #     'origin': "http://10.110.6.34",
+        #     'referer': "http://10.110.6.34/users/login",
+        #     'upgrade-insecure-requests': "1",
+        #     'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        # }
+        # get_data = requests.session()
+        # get_data.post(url_login, data=payload_login, headers=headers_base)
         # 获取数据
         # 先使用limit=1来登录获取最大值。
         url_data = "http://10.110.6.34/audit/bpm/complete"
-        #payload_1 = "limit=1&sortDirect=DESC&sortField=created_at"
         payload_1 = "filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=1&sortDirect=DESC&sortField=created_at".format(start_date=startdate_filter, end_date=enddate_filter)
         headers_data = {
             'host': "10.110.6.34",
@@ -437,7 +416,7 @@ class FrameZhuanli(wx.Frame):
             'accept-language': "zh-CN,zh;q=0.8",
             }
 
-        response_1 = get_data.post(url_data, data=payload_1, headers=headers_data, verify=False)
+        response_1 = login(username, password).post(url_data, data=payload_1, headers=headers_data, verify=False)
         data_1 = response_1.content
         # 获取最大值
         max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
