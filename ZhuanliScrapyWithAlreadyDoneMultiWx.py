@@ -12,34 +12,13 @@ from threading import Thread
 import wx
 import urllib2
 from multiprocessing import Pool
+import multiprocessing
 
 
-def login(username, password):
-    url_login = "http://10.110.6.34/users/login"
-    login_session = requests.Session()
-    headers_login = {
-        'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        'accept-encoding': "gzip, deflate",
-        'accept-language': "zh-CN,zh;q=0.8",
-        'cache-control': "no-cache",
-        'connection': "keep-alive",
-        'content-length': "147",
-        'content-type': "application/x-www-form-urlencoded",
-        'host': "10.110.6.34",
-        'origin': "http://10.110.6.34",
-        'referer': "http://10.110.6.34/users/login",
-        'upgrade-insecure-requests': "1",
-        'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-    }
-    payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
-    login_action = login_session.post(url_login, data=payload_login, headers=headers_login)
-    return  login_session
-
-
-def getpage(page_number, startdate_filter, enddate_filter, username, password):
+def getpage(page_number, startdate_filter, enddate_filter, get_data):
     list_status_temp = []
     list_current_node_temp = []
-    list_num_temp= []
+    list_num_temp = []
     list_sn_filename_temp = []
     list_assign_temp = []
     list_date_created_temp = []
@@ -61,14 +40,14 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
 
     payload_data = "page={page}&filter%5Bcreated_at%5D%5Bfrom%5D={start_date}&filter%5Bcreated_at%5D%5Bto%5D={end_date}&limit=20&sortDirect=DESC&sortField=created_at".format(
         page=page_number, start_date=startdate_filter, end_date=enddate_filter)
-    response_data = login(username, password).post(url_data, data=payload_data, headers=headers_data, verify=False)
+    response_data = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
     return_code_page = response_data.status_code
     data_original = ''
     print(str(page_number) + " " + str(return_code_page))
     if return_code_page != 200:
         print("Try to reget page info for page %s" % str(page_number))
         for i in range(1, 10):
-            response_data_try = login(username, password).post(url_data, data=payload_data, headers=headers_data, verify=False)
+            response_data_try = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
             print("Try %s times for page %s" % (str(i), str(page_number)))
             if response_data_try.status_code != 200:
                 continue
@@ -92,7 +71,6 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
     list_creator_temp_3 = [item.decode('unicode_escape') for item in list_creator_temp_1 if re.search(r'<', item) is None]
     # print list_creator_temp_4
     list_creator_temp_2 = list_creator_temp_3
-
 
     # 获取当前处理人
     list_assign_temp_1 = re.findall(r'"assignee":"(.*?)"', data_original)
@@ -122,10 +100,10 @@ def getpage(page_number, startdate_filter, enddate_filter, username, password):
     list_sn_filename_temp.extend(list_sn_filename_temp_1)
     list_assign_temp.extend(list_assign_temp_2)
     list_creator_temp.extend(list_creator_temp_2)
-    return  list_status_temp, list_date_created_temp, list_current_node_temp, list_num_temp, list_sn_filename_temp, list_assign_temp, list_creator_temp
+    return list_status_temp, list_date_created_temp, list_current_node_temp, list_num_temp, list_sn_filename_temp, list_assign_temp, list_creator_temp
 
 
-def getdetail(link, applicant_link, username, password):
+def getdetail(link, applicant_link, get_data):
     list_status_second_except = ["撰写驳回".decode('gbk'), "待决定".decode('gbk')]
     headers_link = {
         'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -139,7 +117,7 @@ def getdetail(link, applicant_link, username, password):
         'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
     }
     print link
-    data_detail_temp = login(username, password).get(link, headers=headers_link, verify=False)
+    data_detail_temp = get_data.get(link, headers=headers_link, verify=False)
     if data_detail_temp.status_code != 404:
         data_temp = data_detail_temp.text
         data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
@@ -178,7 +156,7 @@ def getdetail(link, applicant_link, username, password):
             else:
                 data_daili_person = "None"
             # 获取申请人信息
-            data_applicant_temp = login(username, password).get(applicant_link, headers=headers_link, verify=False).text
+            data_applicant_temp = get_data.get(applicant_link, headers=headers_link, verify=False).text
             print applicant_link
             applicant_info_temp = re.search(r'"assignee":"(.*?)",', data_applicant_temp)
             if applicant_info_temp is not None:
@@ -358,7 +336,6 @@ class FrameZhuanli(wx.Frame):
             self.output_info.AppendText("%s".decode('gbk') % t)
         self.output_info.AppendText(os.linesep)
 
-
     def run(self):
         self.updatedisplay("开始抓取".decode('gbk'))
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
@@ -379,25 +356,25 @@ class FrameZhuanli(wx.Frame):
         # 排除在外的状态需要特殊考虑，有可能出现显示这些特殊状态，但是实际是受理的！
         list_except = ["驳回".decode('gbk'), '退回发起人'.decode('gbk'), '撤销'.decode('gbk')]
         # 模拟登陆
-        # url_login = "http://10.110.6.34/users/login"
-        # payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
-        #     username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
-        # headers_base = {
-        #     'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        #     'accept-encoding': "gzip, deflate",
-        #     'accept-language': "zh-CN,zh;q=0.8",
-        #     'cache-control': "no-cache",
-        #     'connection': "keep-alive",
-        #     'content-length': "147",
-        #     'content-type': "application/x-www-form-urlencoded",
-        #     'host': "10.110.6.34",
-        #     'origin': "http://10.110.6.34",
-        #     'referer': "http://10.110.6.34/users/login",
-        #     'upgrade-insecure-requests': "1",
-        #     'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-        # }
-        # get_data = requests.session()
-        # get_data.post(url_login, data=payload_login, headers=headers_base)
+        url_login = "http://10.110.6.34/users/login"
+        payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
+            username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
+        headers_base = {
+            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept-encoding': "gzip, deflate",
+            'accept-language': "zh-CN,zh;q=0.8",
+            'cache-control': "no-cache",
+            'connection': "keep-alive",
+            'content-length': "147",
+            'content-type': "application/x-www-form-urlencoded",
+            'host': "10.110.6.34",
+            'origin': "http://10.110.6.34",
+            'referer': "http://10.110.6.34/users/login",
+            'upgrade-insecure-requests': "1",
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        }
+        get_data = requests.session()
+        get_data.post(url_login, data=payload_login, headers=headers_base)
         # 获取数据
         # 先使用limit=1来登录获取最大值。
         url_data = "http://10.110.6.34/audit/bpm/complete"
@@ -416,7 +393,7 @@ class FrameZhuanli(wx.Frame):
             'accept-language': "zh-CN,zh;q=0.8",
             }
 
-        response_1 = login(username, password).post(url_data, data=payload_1, headers=headers_data, verify=False)
+        response_1 = get_data.post(url_data, data=payload_1, headers=headers_data, verify=False)
         data_1 = response_1.content
         # 获取最大值
         max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
@@ -425,19 +402,12 @@ class FrameZhuanli(wx.Frame):
         total_page = int(max_number) / 20 + 2
         # print total_page
         # 分页来获取信息
-        # list_status_temp = []
-        # list_date_created_temp = []
-        # # list_creator_temp = []
-        # list_current_node_temp = []
-        # list_sn_filename_temp = []
-        # list_num_temp = []
-        # list_assign_temp = []
         self.updatedisplay("开始抓取第一部分，分页总数据！".decode('gbk'))
         # use multiprocessing to get page data
         temp = []
         pool_page = Pool()
         for page_number in range(1, total_page):
-            temp.append(pool_page.apply_async(getpage,args=(page_number, startdate_filter, enddate_filter, username, password)))
+            temp.append(pool_page.apply_async(getpage, args=(page_number, startdate_filter, enddate_filter, get_data)))
             self.updatedisplay("已抓取%s/%s页！".decode('gbk') % (page_number, total_page - 1))
         pool_page.close()
         pool_page.join()
@@ -525,7 +495,7 @@ class FrameZhuanli(wx.Frame):
         list_link_special = ["http://10.110.6.34/invention/inventions/view/" + i for i in list_num_special]
         # 申请人信息的链接，分为普通的和特殊的
         list_applicant_link = ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num]
-        list_applicant_link_special =  ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num_special]
+        list_applicant_link_special = ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num_special]
 
         # 已字典的形式保存信息，达到跟前面能够对应的接口,通过list_num来做接口
         # 获取普通专利的状态
@@ -539,7 +509,7 @@ class FrameZhuanli(wx.Frame):
         for index, item_2 in enumerate(list_link):
             applicant_link = list_applicant_link[index]
             # return link, type_invention, username_last_update, date_last_update, status_second, department, creator, applicant_info, data_daili_department, data_daili_person
-            temp_detail.append(pool_detail.apply_async(getdetail,args=(item_2, applicant_link, username, password)))
+            temp_detail.append(pool_detail.apply_async(getdetail, args=(item_2, applicant_link, get_data)))
         pool_detail.close()
         pool_detail.join()
         # 处理获取的普通专利的每个专利的信息
@@ -590,7 +560,7 @@ class FrameZhuanli(wx.Frame):
         for index_special, item_special in enumerate(list_link_special):
             applicant_link_special = list_applicant_link_special[index_special]
             # return link, type_invention, username_last_update, date_last_update, status_second, department, creator, applicant_info, data_daili_department, data_daili_person
-            temp_detail_special.append(pool_detail_special.apply_async(getdetail,args=(item_special, applicant_link_special, username, password)))
+            temp_detail_special.append(pool_detail_special.apply_async(getdetail, args=(item_special, applicant_link_special, get_data)))
         pool_detail_special.close()
         pool_detail_special.join()
         # 处理获取的特殊专利的每个专利的信息
@@ -669,8 +639,8 @@ class FrameZhuanli(wx.Frame):
         for item_special in dict_data_detail_special:
             if len(dict_data_detail_special[item_special]) != 0:
                 if dict_data_detail_special[item_special][0] not in list_status_second_except:
-                # 排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
-                    if dict_data_detail_special[item_special][0] == "撰写中".decode('gbk') and dict_data_detail_special[item_special][10]== "None":
+                    # 排除掉撰写中状态但是代理信息却为空的专利。此种专利为发明人自行发起撰写流程，需要排除！
+                    if dict_data_detail_special[item_special][0] == "撰写中".decode('gbk') and dict_data_detail_special[item_special][10] == "None":
                         continue
                     if dict_data_detail_special[item_special][0] == "提案中".decode('gbk'):
                         continue
@@ -769,17 +739,8 @@ class FrameZhuanli(wx.Frame):
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     app = wx.App()
     frame = FrameZhuanli(None)
     frame.Show()
     app.MainLoop()
-
-
-
-
-
-
-
-
-
-

@@ -13,33 +13,10 @@ import urllib2
 from bs4 import BeautifulSoup
 import requests
 from multiprocessing import Pool
+import multiprocessing
 
 
-def login(username, password):
-    # 模拟登陆
-    url_login = "http://10.110.6.34/users/login"
-    payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
-    headers_base = {
-        'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        'accept-encoding': "gzip, deflate",
-        'accept-language': "zh-CN,zh;q=0.8",
-        'cache-control': "no-cache",
-        'connection': "keep-alive",
-        'content-length': "147",
-        'content-type': "application/x-www-form-urlencoded",
-        'host': "10.110.6.34",
-        'origin': "http://10.110.6.34",
-        'referer': "http://10.110.6.34/users/login",
-        'upgrade-insecure-requests': "1",
-        'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-        #    'postman-token': "a99dbf7b-9cc3-8690-1f7f-fb241a97c835"
-    }
-    login_session = requests.session()
-    login_action = login_session.post(url_login, data=payload_login, headers=headers_base)
-    return login_session
-
-
-def get_detail(link, username, password):
+def get_detail(link, login_session):
     headers_link = {
         'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
         'accept-encoding': "gzip, deflate",
@@ -51,21 +28,51 @@ def get_detail(link, username, password):
         'upgrade-insecure-requests': "1",
         'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
     }
-    data_post = login(username, password).get(link, headers=headers_link, verify=False)
-    data_temp = data_post.text
-    print("%s returncode is %s" % (link, str(data_post.status_code)))
+    data_post = login_session.get(link, headers=headers_link, verify=False)
+    data_temp = ''
+    if data_post.status_code != 200:
+        print("Try to reget detail info for link %s" % str(link))
+        for i in range(1, 10):
+            response_data_try = login_session.get(link, headers=headers_link, verify=False)
+            print("Try %s times for link %s" % (str(i), str(link)))
+            if response_data_try.status_code != 200:
+                continue
+            else:
+                data_temp = response_data_try.text
+                print("%s returncode is %s" % (link, str(response_data_try.status_code)))
+                break
+    else:
+        data_temp = data_post.text
+        print("%s returncode is %s" % (link, str(data_post.status_code)))
+
     data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
+
     try:
         name_daili = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(26) > td > div > div > a")[0].get_text().strip()
     except IndexError:
         name_daili = "None"
-    filename_original = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(5) > td > div > div")[0].get_text().strip()
-    data_rule = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(11) > td:nth-of-type(1) > div > div")[0].get_text().strip()
-    name_creator_temp = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(30) > td > div > div")[0].get_text().strip()
-    name_creator = re.search(r"\D*", name_creator_temp).group()
-    department_temp = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(31) > td > div > div > a")
-    department = "".join([i.get_text().strip() for i in department_temp])
-    # print("Done with %s" % link)
+
+    try:
+        filename_original = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(5) > td > div > div")[0].get_text().strip()
+    except IndexError:
+        filename_original = "None"
+
+    try:
+        data_rule = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(11) > td:nth-of-type(1) > div > div")[0].get_text().strip()
+    except IndexError:
+        data_rule = "None"
+
+    try:
+        name_creator_temp = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(30) > td > div > div")[0].get_text().strip()
+        name_creator = re.search(r"\D*", name_creator_temp).group()
+    except IndexError:
+        name_creator = "None"
+
+    try:
+        department_temp = data_soup_tobe_filter.select("#patentDetail > table > tbody > tr:nth-of-type(31) > td > div > div > a")
+        department = "".join([i.get_text().strip() for i in department_temp])
+    except IndexError:
+        department = "None"
     return link, name_creator, name_daili, department, filename_original, data_rule
 
 
@@ -235,14 +242,30 @@ class FrameZhuanli(wx.Frame):
         startdate_filter = startdate[0:4] + "%2F" + startdate[4:6] + "%2F" + startdate[6:8]
         enddate_filter = enddate[0:4] + "%2F" + enddate[4:6] + "%2F" + enddate[6:8]
 
-        # data_sn_list = []
-        # data_filename_original_list = []
         data_filename_final_list = []
-        # data_creator_list = []
-        # data_department_name_list = []
         data_type_invention_list = []
-        # data_daili_list = []
-        # data_rule_list = []
+
+        # 模拟登陆
+        url_login = "http://10.110.6.34/users/login"
+        payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
+            username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
+        headers_base = {
+            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept-encoding': "gzip, deflate",
+            'accept-language': "zh-CN,zh;q=0.8",
+            'cache-control': "no-cache",
+            'connection': "keep-alive",
+            'content-length': "147",
+            'content-type': "application/x-www-form-urlencoded",
+            'host': "10.110.6.34",
+            'origin': "http://10.110.6.34",
+            'referer': "http://10.110.6.34/users/login",
+            'upgrade-insecure-requests': "1",
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            #    'postman-token': "a99dbf7b-9cc3-8690-1f7f-fb241a97c835"
+        }
+        login_session = requests.session()
+        login_session.post(url_login, data=payload_login, headers=headers_base)
 
         # 获取数据
         # 先使用limit=1来登录获取最大值。
@@ -264,7 +287,7 @@ class FrameZhuanli(wx.Frame):
             'cache-control': "no-cache"
         }
 
-        response_1 = login(username, password).post(url_data, data=payload_1, headers=headers_data, verify=False)
+        response_1 = login_session.post(url_data, data=payload_1, headers=headers_data, verify=False)
         data_1 = response_1.content
         # 获取最大值
         max_number = re.search(r'"pagination":{"currentPage":1,"offset":"1","total":(\d+),', data_1).groups()[0]
@@ -272,7 +295,7 @@ class FrameZhuanli(wx.Frame):
         # 使用最大值来获取信息
         payload_data = "filter%5BPreliminaryBase.filed_date%5D%5Bfrom%5D={starttime}&filter%5BPreliminaryBase.filed_date%5D%5Bto%5D={endtime}&limit={max_number}&sortDirect=DESC&sortField=PreliminaryBase.filed_date".format(
             max_number=max_number, starttime=startdate_filter, endtime=enddate_filter)
-        response_data = login(username, password).post(url_data, data=payload_data, headers=headers_data, verify=False)
+        response_data = login_session.post(url_data, data=payload_data, headers=headers_data, verify=False)
         data_original = response_data.content
 
         # 获取管理编号
@@ -320,7 +343,7 @@ class FrameZhuanli(wx.Frame):
         temp_detail_page = []
         pool_detail_page = Pool()
         for index_link, item_link in enumerate(data_link_list):
-            temp_detail_page.append(pool_detail_page.apply_async(get_detail, args=(item_link, username, password)))
+            temp_detail_page.append(pool_detail_page.apply_async(get_detail, args=(item_link, login_session)))
             self.updatedisplay("已抓取%s/%s个！".decode('gbk') % (index_link + 1, len(data_link_list)))
         pool_detail_page.close()
         pool_detail_page.join()
@@ -426,10 +449,10 @@ class FrameZhuanli(wx.Frame):
             sheet.write(2 + index_data, 4, data_filename_final_list_write[index_data], formatone)
             sheet.write(2 + index_data, 5, data_creator_list_write[index_data], formatone)
             sheet.write(2 + index_data, 6, data_shouli_sn_list_write[index_data], formatone)
-            sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_shenqing_date_list_write[index_data],
-                                                                               '%Y-%m-%d'),
-                                 workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
-
+            if data_shenqing_date_list_write[index_data] == "None":
+                sheet.write(2 + index_data, 7, data_shenqing_date_list_write[index_data], formatone)
+            else:
+                sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_shenqing_date_list_write[index_data], '%Y-%m-%d'), workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
             sheet.write(2 + index_data, 8, data_daili_list_write[index_data], formatone)
             sheet.write(2 + index_data, 9, data_department_name_list_write[index_data], formatone)
         workbook_display.close()
@@ -456,6 +479,7 @@ class FrameZhuanli(wx.Frame):
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     app = wx.App()
     frame = FrameZhuanli(None)
     frame.Show()
