@@ -348,6 +348,8 @@ class FrameZhuanli(wx.Frame):
         pool_detail_page.close()
         pool_detail_page.join()
         print("1")
+        self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+
 
         # return link, name_creator, name_daili, department, filename_original, data_rule
         dict_data_detail = {}

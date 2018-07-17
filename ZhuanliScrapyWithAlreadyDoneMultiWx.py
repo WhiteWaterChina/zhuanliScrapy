@@ -26,6 +26,7 @@ def getpage(page_number, startdate_filter, enddate_filter, get_data):
     headers_data = {
         'host': "10.110.6.34",
         'connection': "keep-alive",
+        'Cache-Control': "no-cache",
         'content-length': "53",
         'accept': "application/json, text/javascript, */*; q=0.01",
         'origin': "http://10.110.6.34",
@@ -47,7 +48,7 @@ def getpage(page_number, startdate_filter, enddate_filter, get_data):
     if return_code_page != 200:
         print("Try to reget page info for page %s" % str(page_number))
         for i in range(1, 10):
-            response_data_try = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False)
+            response_data_try = get_data.post(url_data, data=payload_data, headers=headers_data, verify=False, timeout=100)
             print("Try %s times for page %s" % (str(i), str(page_number)))
             if response_data_try.status_code != 200:
                 continue
@@ -57,6 +58,7 @@ def getpage(page_number, startdate_filter, enddate_filter, get_data):
                 break
     else:
         data_original = response_data.content
+
     # print data_original
     # 获取状态
     list_status_temp_1 = re.findall(r'"status":"<span class=my_task_status_\w*?>(.*?)<\\/span>', data_original)
@@ -117,19 +119,37 @@ def getdetail(link, applicant_link, get_data):
         'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
     }
     print link
+    data_temp = ''
     data_detail_temp = get_data.get(link, headers=headers_link, verify=False)
     if data_detail_temp.status_code != 404:
-        data_temp = data_detail_temp.text
+        if data_detail_temp.status_code != 200:
+            print("Try to reget item info for link %s" % str(link))
+            for i in range(1, 10):
+                response_data_try = get_data.get(link, headers=headers_link, verify=False)
+                print("Try %s times for link %s" % (str(i), str(link)))
+                if response_data_try.status_code != 200:
+                    continue
+                else:
+                    data_temp = response_data_try.text
+                    print(str(link) + " " + str(response_data_try.status_code))
+                    break
+        else:
+            data_temp = data_detail_temp.text
+
         data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
         # print data_soup_tobe_filter
-        # print data_soup_tobe_filter
-        status_second = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
+        try:
+            status_second = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
+        except IndexError:
+            # return link, type_invention, username_last_update, date_last_update, status_second, department, applicant_info, data_daili_department, data_daili_person
+            return link, "None", "None", "None", "None", "None", "None", "None", "None"
+
         if status_second not in list_status_second_except:
             # 专利类型
-            type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
-            # 撰写人
-            # creator_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(9) > td")[0].get_text().strip()
-            # creator = re.search(r"\D*", creator_temp).group()
+            try:
+                type_invention = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(6) > td")[0].get_text().strip()
+            except IndexError:
+                type_invention = "None"
             # 部门
             department_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(10) > td > a")
             department = "".join([i.get_text().strip() for i in department_temp])
@@ -137,36 +157,61 @@ def getdetail(link, applicant_link, get_data):
             name_daili_department = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(14) > td > a")
             # 代理人
             name_daili_person = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(15) > td > a")
-
             # 最后更新人
-            username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[0]
-            username_last_update = re.search(r"\D*", username_last_update_temp).group()
-
+            try:
+                username_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[0]
+                username_last_update = re.search(r"\D*", username_last_update_temp).group()
+            except IndexError:
+                username_last_update = "None"
             # 最后更新时间
-            date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[1]
-            date_last_update = date_last_update_temp.replace("/", "-")
+            try:
+                date_last_update_temp = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(22) > td")[0].get_text().strip().split(" ")[1]
+                date_last_update = date_last_update_temp.replace("/", "-")
+            except IndexError:
+                date_last_update = "None"
 
             if len(name_daili_department) != 0:
-                data_daili_department = name_daili_department[0].get_text().strip()
+                try:
+                    data_daili_department = name_daili_department[0].get_text().strip()
+                except IndexError:
+                    data_daili_department = "None"
             else:
                 data_daili_department = "None"
 
             if len(name_daili_person) != 0:
-                data_daili_person = name_daili_person[0].get_text().strip()
+                try:
+                    data_daili_person = name_daili_person[0].get_text().strip()
+                except IndexError:
+                    data_daili_person = "None"
             else:
                 data_daili_person = "None"
             # 获取申请人信息
-            data_applicant_temp = get_data.get(applicant_link, headers=headers_link, verify=False).text
+            data_applicant_temp = get_data.get(applicant_link, headers=headers_link, verify=False)
+            applicant_info_text = ''
+            if data_applicant_temp.status_code != 200:
+            # print applicant_link
+                print("Try to reget applicant_link info for link %s" % str(applicant_link))
+                for i in range(1, 10):
+                    response_data_try = get_data.get(applicant_link, headers=headers_link, verify=False)
+                    print("Try %s times for applicant_link %s" % (str(i), str(applicant_link)))
+                    if response_data_try.status_code != 200:
+                        continue
+                    else:
+                        applicant_info_text = response_data_try.content
+                        print(str(applicant_link) + " " + str(response_data_try.status_code))
+                        break
+            else:
+                applicant_info_text = data_applicant_temp.content
             print applicant_link
-            applicant_info_temp = re.search(r'"assignee":"(.*?)",', data_applicant_temp)
+            applicant_info_temp = re.search(r'"assignee":"(.*?)",', applicant_info_text)
             if applicant_info_temp is not None:
                 applicant_info = (applicant_info_temp.groups()[0]).decode('unicode_escape')
             else:
                 applicant_info = "None"
             # applicant_info = applicant_info_temp.decode('unicode_escape')
             return link, type_invention, username_last_update, date_last_update, status_second, department, applicant_info, data_daili_department, data_daili_person
-    else:
-        return "None"
+        else:
+            return "None"
 
 
 class FrameZhuanli(wx.Frame):
@@ -405,7 +450,7 @@ class FrameZhuanli(wx.Frame):
         self.updatedisplay("开始抓取第一部分，分页总数据！".decode('gbk'))
         # use multiprocessing to get page data
         temp = []
-        pool_page = Pool()
+        pool_page = Pool(1)
         for page_number in range(1, total_page):
             temp.append(pool_page.apply_async(getpage, args=(page_number, startdate_filter, enddate_filter, get_data)))
             self.updatedisplay("已抓取%s/%s页！".decode('gbk') % (page_number, total_page - 1))
@@ -518,7 +563,7 @@ class FrameZhuanli(wx.Frame):
         for item_detail in temp_detail:
             data_detail_temp = item_detail.get()
             if data_detail_temp is not None:
-                if data_detail_temp[0] != "None":
+                if data_detail_temp != "None":
                     num = data_detail_temp[0].split("/")[-1]
                     index_to_log = list_num.index(num)
                     # status_second
@@ -567,7 +612,7 @@ class FrameZhuanli(wx.Frame):
         for item_detail_special in temp_detail_special:
             data_detail_temp_special = item_detail_special.get()
             if data_detail_temp_special is not None:
-                if data_detail_temp_special[0] != "None":
+                if data_detail_temp_special != "None":
                     num_special = data_detail_temp_special[0].split("/")[-1]
                     index_to_log_special = list_num_special.index(num_special)
                     # status_second
@@ -714,14 +759,21 @@ class FrameZhuanli(wx.Frame):
                 sheet.write(2 + index_data, 3, list_department_write[index_data], formatone)
                 sheet.write(2 + index_data, 4, list_type_write[index_data], formatone)
                 sheet.write(2 + index_data, 5, list_creator_write[index_data], formatone)
-                sheet.write_datetime(2 + index_data, 6,
-                                     datetime.datetime.strptime(list_date_created_write[index_data], '%Y-%m-%d'),
-                                     workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                if list_date_created_write[index_data] != "None":
+                    sheet.write_datetime(2 + index_data, 6,
+                                         datetime.datetime.strptime(list_date_created_write[index_data], '%Y-%m-%d'),
+                                         workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                else:
+                    sheet.write_datetime(2 + index_data, 6, list_date_created_write[index_data], formatone)
 
                 sheet.write(2 + index_data, 7, list_username_lastupdate_write[index_data], formatone)
-                sheet.write_datetime(2 + index_data, 8,
-                                     datetime.datetime.strptime(list_date_lastupdate_write[index_data], '%Y-%m-%d'),
-                                     workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                if list_date_lastupdate_write[index_data] != "None":
+                    sheet.write_datetime(2 + index_data, 8,
+                                         datetime.datetime.strptime(list_date_lastupdate_write[index_data], '%Y-%m-%d'),
+                                         workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                else:
+                    sheet.write_datetime(2 + index_data, 8, list_date_lastupdate_write[index_data], formatone)
+
                 sheet.write(2 + index_data, 9, list_current_node_write[index_data], formatone)
                 sheet.write(2 + index_data, 10, list_name_daili_department_write[index_data], formatone)
                 sheet.write(2 + index_data, 11, list_name_daili_person_write[index_data], formatone)
