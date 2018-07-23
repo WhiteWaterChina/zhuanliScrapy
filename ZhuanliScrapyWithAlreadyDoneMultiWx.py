@@ -189,7 +189,7 @@ def getdetail(link, applicant_link, get_data):
             data_applicant_temp = get_data.get(applicant_link, headers=headers_link, verify=False)
             applicant_info_text = ''
             if data_applicant_temp.status_code != 200:
-            # print applicant_link
+                # print applicant_link
                 print("Try to reget applicant_link info for link %s" % str(applicant_link))
                 for i in range(1, 10):
                     response_data_try = get_data.get(applicant_link, headers=headers_link, verify=False)
