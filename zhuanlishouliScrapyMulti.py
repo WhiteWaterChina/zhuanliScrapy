@@ -16,7 +16,7 @@ from multiprocessing import Pool
 import multiprocessing
 
 
-def get_detail(link, login_session):
+def get_detail(link, login_session, inventor_email_link):
     headers_link = {
         'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
         'accept-encoding': "gzip, deflate",
@@ -73,7 +73,30 @@ def get_detail(link, login_session):
         department = "".join([i.get_text().strip() for i in department_temp])
     except IndexError:
         department = "None"
-    return link, name_creator, name_daili, department, filename_original, data_rule
+    # 获取第一个发明人的邮箱信息
+    data_inventor_email_temp = login_session.get(inventor_email_link, headers=headers_link, verify=False)
+    inventor_email_info_text = ''
+    if data_inventor_email_temp.status_code != 200:
+        # print applicant_link
+        print("Try to reget inventor_email_link info for link %s" % str(inventor_email_link))
+        for i in range(1, 10):
+            response_data_inventor_email_try = login_session.get(inventor_email_link, headers=headers_link, verify=False)
+            print("Try %s times for inventor_email_link %s" % (str(i), str(inventor_email_link)))
+            if response_data_inventor_email_try.status_code != 200:
+                continue
+            else:
+                inventor_email_info_text = response_data_inventor_email_try.content
+                print(str(inventor_email_link) + " " + str(response_data_inventor_email_try.status_code))
+                break
+    else:
+        inventor_email_info_text = data_inventor_email_temp.content
+    print inventor_email_link
+    inventor_email_temp = re.search(r'"email":"(.*?)",', inventor_email_info_text)
+    if inventor_email_temp is not None:
+        inventor_email_info = (inventor_email_temp.groups()[0]).decode('unicode_escape')
+    else:
+        inventor_email_info = "None"
+    return link, name_creator, name_daili, department, filename_original, data_rule, inventor_email_info
 
 
 class FrameZhuanli(wx.Frame):
@@ -314,6 +337,7 @@ class FrameZhuanli(wx.Frame):
         data_shouli_sn_list = []
         data_shenqing_date_list = []
         data_link_number_list = []
+        data_inventor_email_link_list = []
 
         for item in data_link_tmp:
             data_type_invention_list_tmp.append(item[0].decode('unicode_escape'))
@@ -321,7 +345,8 @@ class FrameZhuanli(wx.Frame):
             data_filename_final_list_tmp.append(item[2].decode('unicode_escape'))
         # 再将数字连接到前置地址上
         data_link_list_tmp = ["http://10.110.6.34/patent/patent/view/" + i for i in data_link_number_tmp]
-
+        # 获取发明人邮箱的链接
+        inventor_email_list_temp = ["http://10.110.6.34/contact/contacts/async_listContact/patent/" + i for i in data_link_number_tmp]
         # 获取受理号
         data_shouli_sn_list_tmp = re.findall(r'"PreliminaryBase.application_number":"(\w+\.*?\w*?)","PreliminaryBase.filed_date"', data_original)
 
@@ -329,7 +354,7 @@ class FrameZhuanli(wx.Frame):
         data_shenqing_date_temp = re.findall(r'"PreliminaryBase.filed_date":"(\d+\\/\d+\\/\d+)"', data_original)
         data_shenqing_date_list_tmp = [i.replace("\\/", "-") for i in data_shenqing_date_temp]
         print len(data_type_invention_list_tmp)
-        #去除管理编号小于201803025808。也就是2018年4月1号之前的。
+        #去除管理编号小于201803025808。也就是2018年4月1号之前的。在新财年开始后，需要找到上一个财年的最后一个受理专利的编号！
         for index_mgmt, item_mgmt in enumerate(data_management_sn_list_tmp):
             if int(item_mgmt) > 201803025808:
                 data_management_sn_list.append(item_mgmt)
@@ -339,11 +364,13 @@ class FrameZhuanli(wx.Frame):
                 data_shenqing_date_list.append(data_shenqing_date_list_tmp[index_mgmt])
                 data_filename_final_list.append(data_filename_final_list_tmp[index_mgmt])
                 data_link_number_list.append(data_link_number_tmp[index_mgmt])
+                data_inventor_email_link_list.append(inventor_email_list_temp[index_mgmt])
 
         temp_detail_page = []
         pool_detail_page = Pool()
         for index_link, item_link in enumerate(data_link_list):
-            temp_detail_page.append(pool_detail_page.apply_async(get_detail, args=(item_link, login_session)))
+            inventor_email_list_link = data_inventor_email_link_list[index_link]
+            temp_detail_page.append(pool_detail_page.apply_async(get_detail, args=(item_link, login_session, inventor_email_list_link)))
             self.updatedisplay("已抓取%s/%s个！".decode('gbk') % (index_link + 1, len(data_link_list)))
         pool_detail_page.close()
         pool_detail_page.join()
@@ -351,7 +378,7 @@ class FrameZhuanli(wx.Frame):
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
 
 
-        # return link, name_creator, name_daili, department, filename_original, data_rule
+        # return link, name_creator, name_daili, department, filename_original, data_rule, inventor_email_list_link
         dict_data_detail = {}
         for item_1 in data_link_number_list:
             dict_data_detail["%s" % item_1] = []
@@ -382,6 +409,8 @@ class FrameZhuanli(wx.Frame):
                     dict_data_detail["%s" % num].append(data_detail_temp[2])
                     # department
                     dict_data_detail["%s" % num].append(data_detail_temp[3])
+                    # inventor_email
+                    dict_data_detail["%s" % num].append(data_detail_temp[6])
 
         data_management_sn_list_write = []
         data_type_invention_list_write = []
@@ -393,6 +422,7 @@ class FrameZhuanli(wx.Frame):
         data_shenqing_date_list_write = []
         data_daili_list_write = []
         data_department_name_list_write = []
+        data_inventor_email_list_write = []
 
         for item_data_write in dict_data_detail:
             if len(dict_data_detail[item_data_write]) != 0:
@@ -408,19 +438,21 @@ class FrameZhuanli(wx.Frame):
                 data_shenqing_date_list_write.append(dict_data_detail[item_data_write][7])
                 data_daili_list_write.append(dict_data_detail[item_data_write][8])
                 data_department_name_list_write.append(dict_data_detail[item_data_write][9])
+                data_inventor_email_list_write.append(dict_data_detail[item_data_write][10])
 
-        print "last management sn length " + str(len(data_management_sn_list_write))
-        print "last invention type length " + str(len(data_type_invention_list_write))
-        print "last data rule length " + str(len(data_rule_list_write))
-        print "last filename original length " + str(len(data_filename_original_list_write))
-        print "last filaname final length " + str(len(data_filename_final_list_write))
-        print "last creator length " + str(len(data_creator_list_write))
-        print "last shouli sn length " + str(len(data_shouli_sn_list_write))
-        print "last shenqing date length " + str(len(data_shenqing_date_list_write))
-        print "last daili name length " + str(len(data_daili_list_write))
-        print "last department name length " + str(len(data_department_name_list_write))
+        print("last management sn length " + str(len(data_management_sn_list_write)))
+        print("last invention type length " + str(len(data_type_invention_list_write)))
+        print("last data rule length " + str(len(data_rule_list_write)))
+        print("last filename original length " + str(len(data_filename_original_list_write)))
+        print("last filaname final length " + str(len(data_filename_final_list_write)))
+        print("last creator length " + str(len(data_creator_list_write)))
+        print("last shouli sn length " + str(len(data_shouli_sn_list_write)))
+        print("last shenqing date length " + str(len(data_shenqing_date_list_write)))
+        print("last daili name length " + str(len(data_daili_list_write)))
+        print("last department name length " + str(len(data_department_name_list_write)))
+        print("inventor email length " + str(len(data_inventor_email_list_write)))
 
-        title_sheet = ['管理编号'.decode('gbk'), '专利类型'.decode('gbk'), '专利规则组'.decode('gbk'), '原专利名称'.decode('gbk'), '代理提交专利名称'.decode('gbk'), '发明人'.decode('gbk'), '申请号'.decode('gbk'), '申请日期'.decode('gbk'), '代理'.decode('gbk'), '部门'.decode('gbk')]
+        title_sheet = ['管理编号'.decode('gbk'), '专利类型'.decode('gbk'), '专利规则组'.decode('gbk'), '原专利名称'.decode('gbk'), '代理提交专利名称'.decode('gbk'), '发明人'.decode('gbk'), '申请号'.decode('gbk'), '申请日期'.decode('gbk'), '代理'.decode('gbk'), '部门'.decode('gbk'), '发明人邮箱'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         workbook_display = xlsxwriter.Workbook('2018财年%s专利申请专利状态总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
         sheet = workbook_display.add_worksheet('2018财年%s申请专利状态专利统计'.decode('gbk') % department_write)
@@ -440,7 +472,8 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('H:H', 13)
         sheet.set_column('I:I', 20)
         sheet.set_column('J:J', 42)
-        sheet.merge_range(0, 0, 0, 9, "%s2018财年受理专利总览".decode('gbk') % department_write, formattitle)
+        sheet.set_column('K:K', 25)
+        sheet.merge_range(0, 0, 0, 10, "%s2018财年受理专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
         for index_data, item_data in enumerate(data_management_sn_list_write):
@@ -457,6 +490,7 @@ class FrameZhuanli(wx.Frame):
                 sheet.write_datetime(2 + index_data, 7, datetime.datetime.strptime(data_shenqing_date_list_write[index_data], '%Y-%m-%d'), workbook_display.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
             sheet.write(2 + index_data, 8, data_daili_list_write[index_data], formatone)
             sheet.write(2 + index_data, 9, data_department_name_list_write[index_data], formatone)
+            sheet.write(2 + index_data, 10, data_inventor_email_list_write[index_data], formatone)
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓取结束,请点击退出按钮退出程序".decode('gbk'))

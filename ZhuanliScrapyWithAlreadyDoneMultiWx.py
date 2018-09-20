@@ -105,7 +105,7 @@ def getpage(page_number, startdate_filter, enddate_filter, get_data):
     return list_status_temp, list_date_created_temp, list_current_node_temp, list_num_temp, list_sn_filename_temp, list_assign_temp, list_creator_temp
 
 
-def getdetail(link, applicant_link, get_data):
+def getdetail(link, applicant_link, inventor_email_link, get_data):
     list_status_second_except = ["撰写驳回".decode('gbk'), "待决定".decode('gbk')]
     headers_link = {
         'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -137,7 +137,6 @@ def getdetail(link, applicant_link, get_data):
             data_temp = data_detail_temp.text
 
         data_soup_tobe_filter = BeautifulSoup(data_temp, "html.parser")
-        # print data_soup_tobe_filter
         try:
             status_second = data_soup_tobe_filter.select(".major-left > div > table > tr:nth-of-type(3) > td")[0].get_text().strip()
         except IndexError:
@@ -208,8 +207,30 @@ def getdetail(link, applicant_link, get_data):
                 applicant_info = (applicant_info_temp.groups()[0]).decode('unicode_escape')
             else:
                 applicant_info = "None"
-            # applicant_info = applicant_info_temp.decode('unicode_escape')
-            return link, type_invention, username_last_update, date_last_update, status_second, department, applicant_info, data_daili_department, data_daili_person
+            # 获取第一个发明人的邮箱信息
+            data_inventor_email_temp = get_data.get(inventor_email_link, headers=headers_link, verify=False)
+            inventor_email_info_text = ''
+            if data_inventor_email_temp.status_code != 200:
+                # print applicant_link
+                print("Try to reget inventor_email_link info for link %s" % str(inventor_email_link))
+                for i in range(1, 10):
+                    response_data_inventor_email_try = get_data.get(inventor_email_link, headers=headers_link, verify=False)
+                    print("Try %s times for inventor_email_link %s" % (str(i), str(inventor_email_link)))
+                    if response_data_inventor_email_try.status_code != 200:
+                        continue
+                    else:
+                        inventor_email_info_text = response_data_inventor_email_try.content
+                        print(str(inventor_email_link) + " " + str(response_data_inventor_email_try.status_code))
+                        break
+            else:
+                inventor_email_info_text = data_inventor_email_temp.content
+            print inventor_email_link
+            inventor_email_temp = re.search(r'"email":"(.*?)",', inventor_email_info_text)
+            if inventor_email_temp is not None:
+                inventor_email_info = (inventor_email_temp.groups()[0]).decode('unicode_escape')
+            else:
+                inventor_email_info = "None"
+            return link, type_invention, username_last_update, date_last_update, status_second, department, applicant_info, data_daili_department, data_daili_person, inventor_email_info
         else:
             return "None"
 
@@ -384,25 +405,25 @@ class FrameZhuanli(wx.Frame):
     def run(self):
         self.updatedisplay("开始抓取".decode('gbk'))
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        # 获取WXPYTHON界面上输入的信息
         department_write = self.input_department.GetValue()
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
         startdate = self.text_startdate.GetValue().strip()
         list_status_second_except = ["撰写驳回".decode('gbk'), "待决定".decode('gbk')]
+        # 抓取信息的起止时间判断和转换
         if len(startdate) == 0:
             startdate = "20180320"
         enddate = self.text_enddate.GetValue().strip()
         if len(enddate) == 0:
             enddate = int(time.strftime('%Y%m%d', time.localtime(time.time()))) + 1
         startdate_filter = startdate[0:4] + "%2F" + startdate[4:6] + "%2F" + startdate[6:8]
-        # print startdate_filter
         enddate_filter = enddate[0:4] + "%2F" + enddate[4:6] + "%2F" + enddate[6:8]
-        # print enddate_filter
         # 排除在外的状态需要特殊考虑，有可能出现显示这些特殊状态，但是实际是受理的！
         list_except = ["驳回".decode('gbk'), '退回发起人'.decode('gbk'), '撤销'.decode('gbk')]
         # 模拟登陆
         url_login = "http://10.110.6.34/users/login"
-        payload_login = "_method=POST&_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
+        payload_login = "_method=POST&data%5BUser%5D%5Btype%5D=email&data%5BUser%5D%5Busername%5D={username_sub}&data%5BUser%5D%5Bpassword%5D={password_sub}".format(
             username_sub=urllib2.quote(username), password_sub=urllib2.quote(password))
         headers_base = {
             'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -457,7 +478,7 @@ class FrameZhuanli(wx.Frame):
         pool_page.close()
         pool_page.join()
         print("1")
-        # filter page data
+        # 处理获取到的page数据，从多线程的结果中提取放到列表中
         list_status_temp_after_pagedata_get = []
         list_date_created_temp_after_pagedata_get = []
         list_current_node_temp_after_pagedata_get = []
@@ -541,8 +562,11 @@ class FrameZhuanli(wx.Frame):
         # 申请人信息的链接，分为普通的和特殊的
         list_applicant_link = ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num]
         list_applicant_link_special = ["http://10.110.6.34/invention/async_invention_applicant/async_list/" + i for i in list_num_special]
+        # 发明人邮箱的链接，分为普通的和特殊的
+        list_inventor_email_link = ["http://10.110.6.34/contact/contacts/async_listContact/invention/" + i for i in list_num]
+        list_inventor_email_link_special = ["http://10.110.6.34/contact/contacts/async_listContact/invention/" + i for i in list_num_special]
 
-        # 已字典的形式保存信息，达到跟前面能够对应的接口,通过list_num来做接口
+        # 以字典的形式保存信息，达到跟前面能够对应的接口,通过list_num来做接口
         # 获取普通专利的状态
         self.updatedisplay("开始抓取第二部分！每个专利的信息！".decode('gbk'))
         self.updatedisplay("开始抓取正常流程的专利的信息！".decode('gbk'))
@@ -553,13 +577,14 @@ class FrameZhuanli(wx.Frame):
         pool_detail = Pool()
         for index, item_2 in enumerate(list_link):
             applicant_link = list_applicant_link[index]
-            # return link, type_invention, username_last_update, date_last_update, status_second, department, creator, applicant_info, data_daili_department, data_daili_person
-            temp_detail.append(pool_detail.apply_async(getdetail, args=(item_2, applicant_link, get_data)))
+            inventor_email_link = list_inventor_email_link[index]
+            # return link, type_invention, username_last_update, date_last_update, status_second, department, creator, applicant_info, data_daili_department, data_daili_person，inventor_email_info
+            temp_detail.append(pool_detail.apply_async(getdetail, args=(item_2, applicant_link, inventor_email_link, get_data)))
         pool_detail.close()
         pool_detail.join()
         # 处理获取的普通专利的每个专利的信息
         # return link, type_invention, username_last_update, date_last_update, status_second,
-        # department, applicant_info, data_daili_department, data_daili_person
+        # department, applicant_info, data_daili_department, data_daili_person,inventor_email_info
         for item_detail in temp_detail:
             data_detail_temp = item_detail.get()
             if data_detail_temp is not None:
@@ -594,6 +619,9 @@ class FrameZhuanli(wx.Frame):
                     dict_data_detail["%s" % num].append(list_assign[index_to_log])
                     # applicant
                     dict_data_detail["%s" % num].append(data_detail_temp[6])
+                    # inventor_email_info
+                    dict_data_detail["%s" % num].append(data_detail_temp[9])
+
 
         # 获取特殊专利的状态
         self.updatedisplay("开始抓取异常流程专利的信息！".decode('gbk'))
@@ -604,8 +632,9 @@ class FrameZhuanli(wx.Frame):
         pool_detail_special = Pool()
         for index_special, item_special in enumerate(list_link_special):
             applicant_link_special = list_applicant_link_special[index_special]
-            # return link, type_invention, username_last_update, date_last_update, status_second, department, creator, applicant_info, data_daili_department, data_daili_person
-            temp_detail_special.append(pool_detail_special.apply_async(getdetail, args=(item_special, applicant_link_special, get_data)))
+            inventor_email_link_special = list_inventor_email_link_special[index_special]
+            # return link, type_invention, username_last_update, date_last_update, status_second, department, creator, applicant_info, data_daili_department, data_daili_person, inventor_email_info
+            temp_detail_special.append(pool_detail_special.apply_async(getdetail, args=(item_special, applicant_link_special, inventor_email_link_special, get_data)))
         pool_detail_special.close()
         pool_detail_special.join()
         # 处理获取的特殊专利的每个专利的信息
@@ -643,6 +672,9 @@ class FrameZhuanli(wx.Frame):
                     dict_data_detail_special["%s" % num_special].append(list_assign_special[index_to_log_special])
                     # applicant
                     dict_data_detail_special["%s" % num_special].append(data_detail_temp_special[6])
+                    # inventor_email_info
+                    dict_data_detail_special["%s" % num_special].append(data_detail_temp_special[9])
+
         # 处理数据,将普通的和特殊的合并到一起
         list_status_second_write = []
         list_sn_write = []
@@ -658,6 +690,7 @@ class FrameZhuanli(wx.Frame):
         list_name_daili_person_write = []
         list_assign_write = []
         list_applicant_write = []
+        list_inventor_email_write = []
         #普通的
         # list_status_second_except = ["撰写驳回".decode('gbk'), "待决定".decode('gbk')]
 
@@ -680,6 +713,7 @@ class FrameZhuanli(wx.Frame):
                     list_name_daili_person_write.append(dict_data_detail[item_putong][11])
                     list_assign_write.append(dict_data_detail[item_putong][12])
                     list_applicant_write.append(dict_data_detail[item_putong][13])
+                    list_inventor_email_write.append(dict_data_detail[item_putong][14])
         # 特殊的
         for item_special in dict_data_detail_special:
             if len(dict_data_detail_special[item_special]) != 0:
@@ -703,12 +737,13 @@ class FrameZhuanli(wx.Frame):
                     list_name_daili_person_write.append(dict_data_detail_special[item_special][11])
                     list_assign_write.append(dict_data_detail_special[item_special][12])
                     list_applicant_write.append(dict_data_detail_special[item_special][13])
+                    list_inventor_email_write.append(dict_data_detail_special[item_special][14])
 
         print "sn length " + str(len(list_sn_write))
         print "status length " + str(len(list_status_second_write))
         print "current node length " + str(len(list_current_node_write))
         print "creator length " + str(len(list_creator_write))
-        print "date created length" + str(len(list_date_created_write))
+        print "date created length " + str(len(list_date_created_write))
         print "filename length " + str(len(list_filename_write))
         print "username lastupdate length " + str(len(list_username_lastupdate_write))
         print "date lastupdate length " + str(len(list_date_lastupdate_write))
@@ -718,12 +753,13 @@ class FrameZhuanli(wx.Frame):
         print "daili person length " + str(len(list_name_daili_person_write))
         print "assign length " + str(len(list_assign_write))
         print "applicant list length " + str(len(list_applicant_write))
+        print "inventor email length " + str(len(list_inventor_email_write))
 
         # write info to excel file
         title_sheet = ['当前状态'.decode('gbk'), '提案编号'.decode('gbk'), '提案名称'.decode('gbk'), '处别'.decode('gbk'),
                        '专利类型'.decode('gbk'), '撰写人'.decode('gbk'), '提交时间'.decode('gbk'), '最后更新人'.decode('gbk'),
                        '最后更新时间'.decode('gbk'), '当前节点'.decode('gbk'), '代理机构名称'.decode('gbk'), '代理人'.decode('gbk'),
-                       '当前处理人'.decode('gbk'), '申请人'.decode('gbk')]
+                       '当前处理人'.decode('gbk'), '申请人'.decode('gbk'), '发明人邮箱'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         # department_write = "测试验证部".decode('gbk')
         workbook_display = xlsxwriter.Workbook('2018财年%s专利总览-%s.xlsx'.decode('gbk') % (department_write, timestamp))
@@ -746,9 +782,9 @@ class FrameZhuanli(wx.Frame):
         sheet.set_column('J:J', 17)
         sheet.set_column('K:L', 33)
         sheet.set_column('M:M', 20)
-        sheet.set_column('N:N', 25)
+        sheet.set_column('N:O', 25)
 
-        sheet.merge_range(0, 0, 0, 13, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
+        sheet.merge_range(0, 0, 0, 14, "%s2018财年专利总览".decode('gbk') % department_write, formattitle)
         for index_title, item_title in enumerate(title_sheet):
             sheet.write(1, index_title, item_title, formatone)
         for index_data, item_data in enumerate(list_status_second_write):
@@ -782,6 +818,7 @@ class FrameZhuanli(wx.Frame):
                 else:
                     sheet.write(2 + index_data, 12, list_assign_write[index_data], formatone)
                 sheet.write(2 + index_data, 13, list_applicant_write[index_data], formatone)
+                sheet.write(2 + index_data, 14, list_inventor_email_write[index_data], formatone)
 
         workbook_display.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
